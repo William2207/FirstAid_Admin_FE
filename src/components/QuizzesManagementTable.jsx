@@ -10,6 +10,7 @@ import {
 import { Trash2, Edit2, Plus } from "lucide-react";
 import { CreateQuizQuestionModal } from "./modal/CreateQuizQuestionModal";
 import { EditQuizQuestionModal } from "./modal/EditQuizQuestionModal";
+import { ConfirmDeleteModal } from "./modal/ConfirmDeleteModal";
 import axiosCustom from "@/config/axiosCustom";
 import { toast } from "sonner";
 export function QuizzesManagementTable() {
@@ -25,6 +26,12 @@ export function QuizzesManagementTable() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   // State lưu trữ câu hỏi đang được chọn để chỉnh sửa
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  // State quản lý modal xác nhận xóa
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    questionId: null,
+    isDeleting: false,
+  });
 
   // useEffect sẽ chạy một lần sau khi component được render lần đầu
   useEffect(() => {
@@ -91,7 +98,7 @@ export function QuizzesManagementTable() {
       );
       const updatedQuestionFromServer = response.data;
       console.log("Updated question from server:", updatedQuestionFromServer);
-      
+
       setQuizzes(
         quizzes.map((q) =>
           q.id === updatedQuestionFromServer.id ? updatedQuestionFromServer : q
@@ -104,23 +111,18 @@ export function QuizzesManagementTable() {
   };
 
   const handleDeleteQuestion = async (id) => {
-    if (
-      !window.confirm(
-        "Bạn có chắc chắn muốn xóa câu hỏi này không? Hành động này không thể hoàn tác."
-      )
-    ) {
-      return;
-    }
-
     try {
+      setDeleteConfirm({ ...deleteConfirm, isDeleting: true });
       await axiosCustom.delete(`/quiz/${id}`);
       setQuizzes((prevQuizzes) => prevQuizzes.filter((q) => q.id !== id));
 
       toast.success("Xóa câu hỏi thành công!");
+      setDeleteConfirm({ isOpen: false, questionId: null, isDeleting: false });
     } catch (error) {
       console.error("Error deleting question:", error);
 
       toast.error("Xóa câu hỏi thất bại. Vui lòng thử lại.");
+      setDeleteConfirm({ ...deleteConfirm, isDeleting: false });
     }
   };
 
@@ -238,7 +240,13 @@ export function QuizzesManagementTable() {
                             variant="outline"
                             size="sm"
                             className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
-                            onClick={() => handleDeleteQuestion(question.id)}
+                            onClick={() =>
+                              setDeleteConfirm({
+                                isOpen: true,
+                                questionId: question.id,
+                                isDeleting: false,
+                              })
+                            }
                           >
                             <Trash2 className="w-4 h-4" />
                             Xóa
@@ -266,6 +274,21 @@ export function QuizzesManagementTable() {
         onOpenChange={setEditModalOpen}
         question={selectedQuestion}
         onUpdate={handleUpdateQuestion}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() =>
+          setDeleteConfirm({
+            isOpen: false,
+            questionId: null,
+            isDeleting: false,
+          })
+        }
+        onConfirm={() => handleDeleteQuestion(deleteConfirm.questionId)}
+        title="Xóa Câu Hỏi"
+        description="Bạn chắc chắn muốn xóa câu hỏi này không? Hành động này không thể hoàn tác."
+        isLoading={deleteConfirm.isDeleting}
       />
     </div>
   );

@@ -10,10 +10,16 @@ import {
 import { Trash2 } from "lucide-react";
 import { CreateCategoryModal } from "./modal/CreateCategoryModal";
 import { EditCategoryModal } from "./modal/EditCategoryModal";
+import { ConfirmDeleteModal } from "./modal/ConfirmDeleteModal";
 import axiosCustom from "@/config/axiosCustom";
 import { toast } from "sonner";
 export function CategoriesManagementTable() {
   const [categories, setCategories] = useState([]);
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    categoryId: null,
+    isDeleting: false,
+  });
 
   //Fetch data categories from API
   useEffect(() => {
@@ -31,12 +37,8 @@ export function CategoriesManagementTable() {
 
   // Xóa một danh mục khỏi state
   const handleDelete = async (id) => {
-    // (Tùy chọn) Thêm một bước xác nhận trước khi xóa
-    if (!window.confirm("Bạn có chắc chắn muốn xóa danh mục này không?")) {
-      return; // Dừng lại nếu người dùng không xác nhận
-    }
-
     try {
+      setDeleteConfirm({ ...deleteConfirm, isDeleting: true });
       // Gửi yêu cầu DELETE đến API để xóa danh mục có id tương ứng
       await axiosCustom.delete(`/techniquetypes/${id}`);
 
@@ -44,19 +46,21 @@ export function CategoriesManagementTable() {
       setCategories(categories.filter((c) => c.id !== id));
 
       toast.success("Đã xóa danh mục thành công.");
+      setDeleteConfirm({ isOpen: false, categoryId: null, isDeleting: false });
     } catch (error) {
       console.error("Error deleting category:", error);
       let errorMessage = "Không thể xóa danh mục. Vui lòng thử lại.";
       if (error.response?.data?.message) {
-        errorMessage = error.response.data.message; // ← Lấy .message
+        errorMessage = error.response.data.message;
       } else if (typeof error.response?.data === "string") {
-        errorMessage = error.response.data; // nếu backend trả string
+        errorMessage = error.response.data;
       }
 
       // Hiển thị thông báo lỗi
       toast.error("Thao tác thất bại", {
         description: errorMessage,
       });
+      setDeleteConfirm({ ...deleteConfirm, isDeleting: false });
     }
   };
 
@@ -165,7 +169,13 @@ export function CategoriesManagementTable() {
                         variant="outline"
                         size="sm"
                         className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
-                        onClick={() => handleDelete(category.id)}
+                        onClick={() =>
+                          setDeleteConfirm({
+                            isOpen: true,
+                            categoryId: category.id,
+                            isDeleting: false,
+                          })
+                        }
                       >
                         <Trash2 className="w-4 h-4" />
                         Xóa
@@ -178,6 +188,21 @@ export function CategoriesManagementTable() {
           </div>
         </CardContent>
       </Card>
+
+      <ConfirmDeleteModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() =>
+          setDeleteConfirm({
+            isOpen: false,
+            categoryId: null,
+            isDeleting: false,
+          })
+        }
+        onConfirm={() => handleDelete(deleteConfirm.categoryId)}
+        title="Xóa Danh Mục"
+        description="Bạn chắc chắn muốn xóa danh mục này không? Hành động này không thể hoàn tác."
+        isLoading={deleteConfirm.isDeleting}
+      />
     </div>
   );
 }

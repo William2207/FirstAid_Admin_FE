@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { CreateTechniqueModal } from "./modal/CreateTechniqueModal";
 import { EditTechniqueModal } from "./modal/EditTechniqueModal";
+import { ConfirmDeleteModal } from "./modal/ConfirmDeleteModal";
 import axiosCustom from "@/config/axiosCustom";
-
+import { toast } from "sonner";
 export function TechniquesManagementTable() {
   const [techniques, setTechniques] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -11,6 +12,12 @@ export function TechniquesManagementTable() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentTechnique, setCurrentTechnique] = useState(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    techniqueId: null,
+    isDeleting: false,
+  });
 
   useEffect(() => {
     const fetchTechniques = async () => {
@@ -28,19 +35,16 @@ export function TechniquesManagementTable() {
   }, []);
 
   const handleDelete = async (id) => {
-    const originalTechniques = [...techniques];
-
-    // Cập nhật giao diện ngay lập tức để tăng trải nghiệm người dùng
-    setTechniques(techniques.filter((t) => t.id !== id));
-
     try {
-      // Gọi API DELETE
+      setDeleteConfirm({ ...deleteConfirm, isDeleting: true });
       await axiosCustom.delete(`/techniques/${id}`);
+      setTechniques(techniques.filter((t) => t.id !== id));
+      toast.success("Xóa kỹ thuật thành công!");
+      setDeleteConfirm({ isOpen: false, techniqueId: null, isDeleting: false });
     } catch (error) {
       console.error("Lỗi khi xóa kỹ thuật:", error);
-      // Nếu có lỗi, khôi phục lại danh sách ban đầu
-      setTechniques(originalTechniques);
-      alert("Xóa kỹ thuật thất bại, vui lòng thử lại.");
+      toast.error("Xóa kỹ thuật thất bại, vui lòng thử lại.");
+      setDeleteConfirm({ ...deleteConfirm, isDeleting: false });
     }
   };
 
@@ -133,12 +137,13 @@ export function TechniquesManagementTable() {
       const responseData = await axiosCustom.get("/techniques?pageSize=200");
       setTechniques(responseData.data.data);
       setShowAddModal(false);
+      toast.success("Tạo kỹ thuật thành công!");
     } catch (error) {
       // Interceptor của bạn đã log lỗi chi tiết ra console.
       // Ở đây, chúng ta chỉ cần hiển thị một thông báo thân thiện cho người dùng.
       const errorMessage =
         error.response?.data?.message || "Có lỗi xảy ra khi tạo kỹ thuật mới.";
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false); // Luôn dừng trạng thái loading dù thành công hay thất bại
     }
@@ -184,10 +189,11 @@ export function TechniquesManagementTable() {
       const response = await axiosCustom.get("/techniques?pageSize=200");
       setTechniques(response.data.data);
 
+      toast.success("Cập nhật kỹ thuật thành công!");
       handleCloseEditModal(); // Đóng modal sau khi thành công
     } catch (error) {
       console.error("Lỗi khi cập nhật kỹ thuật:", error);
-      alert("Cập nhật kỹ thuật thất bại. Vui lòng thử lại.");
+      toast.error("Cập nhật kỹ thuật thất bại. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -283,7 +289,13 @@ export function TechniquesManagementTable() {
                         {isLoadingDetail ? "Đang tải..." : "Sửa"}
                       </button>
                       <button
-                        onClick={() => handleDelete(technique.id)}
+                        onClick={() =>
+                          setDeleteConfirm({
+                            isOpen: true,
+                            techniqueId: technique.id,
+                            isDeleting: false,
+                          })
+                        }
                         className="flex items-center gap-1 px-3 py-1 border rounded-md text-red-600 hover:bg-red-50"
                       >
                         Xóa
@@ -315,6 +327,21 @@ export function TechniquesManagementTable() {
           techniqueData={currentTechnique} // Truyền dữ liệu của kỹ thuật đang được sửa vào modal
         />
       )}
+
+      <ConfirmDeleteModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() =>
+          setDeleteConfirm({
+            isOpen: false,
+            techniqueId: null,
+            isDeleting: false,
+          })
+        }
+        onConfirm={() => handleDelete(deleteConfirm.techniqueId)}
+        title="Xóa Kỹ Thuật"
+        description="Bạn chắc chắn muốn xóa kỹ thuật này không? Hành động này không thể hoàn tác."
+        isLoading={deleteConfirm.isDeleting}
+      />
     </div>
   );
 }
