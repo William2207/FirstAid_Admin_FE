@@ -37,7 +37,7 @@ export function ScenariosManagementTable() {
     fetchScenarios();
   }, []);
 
-  // Hàm tạo mới scenario - gọi API
+  // Hàm tạo mới scenario 
   const handleCreateScenario = async (data) => {
     try {
       const response = await axiosCustom.post("/scenarios", data);
@@ -52,7 +52,7 @@ export function ScenariosManagementTable() {
     }
   };
 
-  // Hàm chỉnh sửa scenario - gọi API
+  // Hàm chỉnh sửa scenario 
   const handleEditScenario = async (data) => {
     try {
       const response = await axiosCustom.put(

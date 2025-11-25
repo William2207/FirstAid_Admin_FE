@@ -1,43 +1,59 @@
 import React from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { BarChart3, BookOpen, Layers, Grid3x3, Settings } from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import {
+  BarChart3,
+  BookOpen,
+  Layers,
+  Grid3x3,
+  Settings,
+  LogOut,
+} from "lucide-react";
 
-// Dữ liệu cho các mục điều hướng
 const navigationItems = [
   {
     label: "Dashboard",
-    to: "/", 
+    to: "/admin",
     icon: BarChart3,
   },
   {
     label: "Kỹ thuật sơ cứu",
-    to: "/techniques", 
+    to: "/admin/techniques",
     icon: BookOpen,
   },
   {
     label: "Quiz",
-    to: "/quizzes", 
+    to: "/admin/quizzes",
     icon: Grid3x3,
   },
   {
     label: "Danh mục",
-    to: "/categories", 
+    to: "/admin/categories",
     icon: Layers,
   },
   {
     label: "Scenario",
-    to: "/scenarios", 
+    to: "/admin/scenarios",
     icon: Settings,
   },
 ];
 
-// Hàm tiện ích đơn giản để nối class (thay thế cho `cn`)
-// Bạn cũng có thể cài đặt thư viện `clsx` để làm việc này tốt hơn
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 export function AdminSidebar() {
-  const location = useLocation(); // Sử dụng useLocation thay cho usePathname
+  const location = useLocation();
+  const navigate = useNavigate();
   const pathname = location.pathname;
+
+  const handleLogout = () => {
+    // if (!window.confirm("Bạn có chắc chắn muốn đăng xuất không?")) return;
+
+    // Xóa các key đã lưu trong sessionStorage lúc đăng nhập
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("roles");
+    sessionStorage.removeItem("user");
+
+    navigate("/login");
+  };
 
   return (
     <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col min-h-screen">
@@ -53,8 +69,6 @@ export function AdminSidebar() {
       <nav className="flex-1 p-4 space-y-2">
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          // Logic kiểm tra active vẫn giữ nguyên nếu bạn muốn kiểm tra cả các route con
-          // Ví dụ: /admin/techniques/add cũng sẽ làm active link "Kỹ thuật sơ cứu"
           const isActive =
             pathname === item.to ||
             (item.to !== "/admin" && pathname.startsWith(item.to + "/"));
@@ -62,9 +76,7 @@ export function AdminSidebar() {
           return (
             <NavLink
               key={item.to}
-              to={item.to} // Sử dụng to thay cho href
-              // Thay vì dùng prop `isActive` của NavLink, chúng ta tự tính để khớp với logic cũ
-              // của bạn là `startsWith` cho các route con.
+              to={item.to}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                 isActive
@@ -79,10 +91,14 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Footer - Nút Đăng xuất */}
       <div className="p-4 border-t border-sidebar-border">
-        <button className="w-full px-4 py-2 bg-sidebar-primary text-sidebar-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium">
-          Đăng xuất
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-sidebar-primary text-sidebar-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Đăng xuất</span>
         </button>
       </div>
     </div>
