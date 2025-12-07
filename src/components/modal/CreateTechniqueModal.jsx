@@ -46,7 +46,7 @@ export function CreateTechniqueModal({ isOpen, onClose, onSubmit }) {
         setFetchError(null);
         try {
           // Thay đổi '/technique-types' thành endpoint API thực tế của bạn
-          const response = await axiosCustom.get("/techniquetypes");
+          const response = await axiosCustom.get("/techniquetypes/all");
           setTechniqueTypes(response.data); // Giả sử API trả về dữ liệu trong response.data
         } catch (error) {
           console.error("Lỗi khi tải loại kỹ thuật:", error);
@@ -127,10 +127,10 @@ export function CreateTechniqueModal({ isOpen, onClose, onSubmit }) {
     if (currentStep.instruction.length > 1000)
       newErrors.instruction = "Hướng dẫn không được vượt quá 1000 ký tự";
     if (!currentStep.expectedAction.trim())
-      newErrors.expectedAction = "Hành động kỳ vọng là bắt buộc";
+      newErrors.expectedAction = "Hành động lưu ý là bắt buộc";
     if (currentStep.expectedAction.length > 1000)
       newErrors.expectedAction =
-        "Hành động kỳ vọng không được vượt quá 1000 ký tự";
+        "Hành động lưu ý không được vượt quá 1000 ký tự";
     if (currentStep.duration < 0) newErrors.duration = "Thời lượng phải >= 0";
 
     // Bạn có thể thêm validation cho file ở đây (ví dụ: kích thước, loại file)
@@ -494,7 +494,7 @@ export function CreateTechniqueModal({ isOpen, onClose, onSubmit }) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hành động kỳ vọng <span className="text-red-500">*</span>
+                    Hành động lưu ý <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     name="expectedAction"

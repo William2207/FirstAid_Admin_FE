@@ -1,21 +1,24 @@
 import { Link } from "react-router-dom";
-import { use, useState } from "react";
+import { useState } from "react";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import axiosCustom from "@/config/axiosCustom";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const returnToHome = () => {
     navigate("/");
-  }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,19 +31,42 @@ export default function LoginPage() {
         password,
       });
       const { token, user } = response.data;
-      //console.log("Received token:", token);
-      //console.log("User info:", user);
       sessionStorage.setItem("token", token);
       sessionStorage.setItem("roles", JSON.stringify(user.roles));
+      // Kiểm tra role có phải Admin không - xử lý nhiều trường hợp
+      let hasAdminRole = false;
+
+      if (user.roles) {
+        // Nếu roles là mảng
+        if (Array.isArray(user.roles)) {
+          hasAdminRole = user.roles.includes("Admin");
+        }
+        // Nếu roles là chuỗi
+        else if (typeof user.roles === "string") {
+          hasAdminRole = user.roles === "Admin" || user.roles.includes("Admin");
+        }
+      }
+
+      console.log("Has Admin role?", hasAdminRole);
+
+      if (!hasAdminRole) {
+        setError("Chỉ có người dùng Admin mới có thể truy cập hệ thống này.");
+        toast.error("Quyền truy cập bị từ chối: Chỉ Admin được phép");
+        setIsLoading(false);
+        return;
+      }
 
       const userResponse = await axiosCustom.get("/users/me");
       const userData = userResponse.data;
-      sessionStorage.setItem("user", JSON.stringify(userData));
-      //console.log("Logged in user:", userData);
 
+      // Sử dụng login từ AuthContext
+      login(userData, user.roles, token);
+
+      toast.success("Đăng nhập thành công!");
       navigate("/admin");
     } catch (err) {
       setError("Đăng nhập thất bại. Vui lòng thử lại.");
+      toast.error("Đăng nhập thất bại");
     } finally {
       setIsLoading(false);
     }
@@ -135,19 +161,6 @@ export default function LoginPage() {
                 {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
               </Button>
             </form>
-
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <p className="text-center text-gray-600">
-                Chưa có tài khoản?{" "}
-                {/* Thay href="/auth/signup" bằng to="/auth/signup" */}
-                <Link
-                  to="/auth/signup"
-                  className="text-emerald-600 hover:text-emerald-700 font-semibold"
-                >
-                  Đăng ký ngay
-                </Link>
-              </p>
-            </div>
           </div>
         </Card>
 

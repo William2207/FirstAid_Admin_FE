@@ -59,7 +59,7 @@ export function EditTechniqueModal({
         setFetchError(null);
         try {
           // Thay đổi '/technique-types' thành endpoint API thực tế của bạn
-          const response = await axiosCustom.get("/techniquetypes");
+          const response = await axiosCustom.get("/techniquetypes/all");
           setTechniqueTypes(response.data); // Giả sử API trả về dữ liệu trong response.data
         } catch (error) {
           console.error("Lỗi khi tải loại kỹ thuật:", error);
@@ -465,7 +465,7 @@ export function EditTechniqueModal({
 
                             <div>
                               <label className="block text-sm font-medium text-foreground mb-2">
-                                Hành động kỳ vọng
+                                Hành động lưu ý
                               </label>
                               <textarea
                                 value={editingStep?.expectedAction || ""}

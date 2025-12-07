@@ -2,10 +2,24 @@ import React, { useState, useEffect } from "react";
 import { CreateTechniqueModal } from "./modal/CreateTechniqueModal";
 import { EditTechniqueModal } from "./modal/EditTechniqueModal";
 import { ConfirmDeleteModal } from "./modal/ConfirmDeleteModal";
+import { ChevronLeft, ChevronRight } from "lucide-react"; // Import icon phân trang
 import axiosCustom from "@/config/axiosCustom";
 import { toast } from "sonner";
+
 export function TechniquesManagementTable() {
+  // --- STATE DỮ LIỆU ---
   const [techniques, setTechniques] = useState([]);
+  const [loading, setLoading] = useState(true); // State loading cho bảng
+  
+  // --- STATE PHÂN TRANG ---
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    pageSize: 10, // Số lượng item trên mỗi trang
+    totalPages: 1,
+    totalItems: 0,
+  });
+
+  // --- STATE MODAL ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -19,28 +33,59 @@ export function TechniquesManagementTable() {
     isDeleting: false,
   });
 
-  useEffect(() => {
-    const fetchTechniques = async () => {
-      try {
-        // Endpoint là '/techniques' vì baseURL đã được cấu hình là '.../api'
-        const response = await axiosCustom.get("/techniques?pageSize=200");
-        setTechniques(response.data.data);
-      } catch (error) {
-        // Interceptor của bạn đã log lỗi ra console, ở đây bạn có thể hiển thị thông báo cho người dùng nếu cần
-        console.error("Không thể tải danh sách kỹ thuật:", error);
-      }
-    };
+  // Hàm gọi API lấy danh sách kỹ thuật (Tách ra để tái sử dụng)
+  const fetchTechniques = async (page = 1, size = 10) => {
+    try {
+      setLoading(true);
+      // Gọi API với tham số phân trang
+      const response = await axiosCustom.get(`/techniques?page=${page}&pageSize=${size}`);
+      
+      // Destructure dữ liệu trả về từ server
+      const { data, currentPage, totalPages, totalItems, pageSize } = response.data;
+      
+      setTechniques(data);
+      setPagination({
+        currentPage: currentPage,
+        totalPages: totalPages,
+        pageSize: pageSize,
+        totalItems: totalItems,
+      });
+    } catch (error) {
+      console.error("Không thể tải danh sách kỹ thuật:", error);
+      toast.error("Lỗi tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchTechniques();
-  }, []);
+  // useEffect gọi API khi currentPage thay đổi
+  useEffect(() => {
+    fetchTechniques(pagination.currentPage, pagination.pageSize);
+  }, [pagination.currentPage]);
+
+  // Xử lý chuyển trang
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setPagination((prev) => ({ ...prev, currentPage: newPage }));
+    }
+  };
 
   const handleDelete = async (id) => {
     try {
       setDeleteConfirm({ ...deleteConfirm, isDeleting: true });
       await axiosCustom.delete(`/techniques/${id}`);
-      setTechniques(techniques.filter((t) => t.id !== id));
+      
       toast.success("Xóa kỹ thuật thành công!");
       setDeleteConfirm({ isOpen: false, techniqueId: null, isDeleting: false });
+
+      // Logic xử lý khi xóa item cuối cùng của trang
+      if (techniques.length === 1 && pagination.currentPage > 1) {
+         // Lùi về trang trước
+         setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }));
+      } else {
+         // Reload trang hiện tại
+         fetchTechniques(pagination.currentPage, pagination.pageSize);
+      }
     } catch (error) {
       console.error("Lỗi khi xóa kỹ thuật:", error);
       toast.error("Xóa kỹ thuật thất bại, vui lòng thử lại.");
@@ -50,8 +95,6 @@ export function TechniquesManagementTable() {
 
   /**
    * Hàm trợ giúp để upload một file lên API Cloudinary của bạn.
-   * @param {File} file - Đối tượng file cần upload.
-   * @returns {Promise<string|null>} - Trả về URL của file đã upload hoặc null nếu có lỗi.
    */
   const uploadFile = async (file) => {
     if (!file) return null;
@@ -60,18 +103,15 @@ export function TechniquesManagementTable() {
 
     try {
       const response = await axiosCustom.post("/media/upload", uploadFormData);
-      // Giả sử API trả về object có chứa URL: { success: true, url: '...' }
       return response.data.url;
     } catch (error) {
       console.error("Lỗi khi upload file:", error);
-      // Ném lỗi ra ngoài để Promise.all có thể bắt được
       throw new Error(`Upload file ${file.name} thất bại.`);
     }
   };
 
   /**
-   * Hàm xử lý việc thêm kỹ thuật mới bằng cách gọi API qua axiosCustom.
-   * @param {object} formData Dữ liệu từ form trong modal.
+   * Hàm xử lý việc thêm kỹ thuật mới
    */
   const handleAddTechnique = async (formData) => {
     setIsSubmitting(true);
@@ -79,118 +119,90 @@ export function TechniquesManagementTable() {
 
     try {
       console.log("Bắt đầu quá trình upload file...");
-
-      // Tạo một mảng các promise để upload file
       const uploadPromises = [];
 
-      // Thêm promise cho video và ảnh đại diện (nếu có)
-      if (formData.videoFile)
-        uploadPromises.push(uploadFile(formData.videoFile));
-      if (formData.imageFile)
-        uploadPromises.push(uploadFile(formData.imageFile));
+      if (formData.videoFile) uploadPromises.push(uploadFile(formData.videoFile));
+      if (formData.imageFile) uploadPromises.push(uploadFile(formData.imageFile));
 
-      // Thêm promise cho ảnh của từng bước (nếu có)
       formData.steps.forEach((step) => {
         if (step.imageFile) {
           uploadPromises.push(uploadFile(step.imageFile));
         }
       });
 
-      // Chờ tất cả các file được upload xong
       const uploadedUrls = await Promise.all(uploadPromises);
       console.log("Tất cả các file đã được upload:", uploadedUrls);
 
-      // Sao chép dữ liệu từ form để không thay đổi state gốc
       const payload = { ...formData };
-      let urlIndex = 0; // Sử dụng index để lấy URL theo đúng thứ tự
+      let urlIndex = 0;
 
-      // Gán URL cho video và ảnh đại diện
       if (payload.videoFile) {
         payload.videoUrl = uploadedUrls[urlIndex++];
-        delete payload.videoFile; // Xóa key chứa đối tượng File
+        delete payload.videoFile;
       }
       if (payload.imageFile) {
         payload.imageUrl = uploadedUrls[urlIndex++];
-        delete payload.imageFile; // Xóa key chứa đối tượng File
+        delete payload.imageFile;
       }
 
-      // Gán URL cho ảnh của từng bước
       payload.steps = payload.steps.map((step) => {
         if (step.imageFile) {
           const newStep = { ...step, imageUrl: uploadedUrls[urlIndex++] };
           delete newStep.imageFile;
           return newStep;
         }
-        // Nếu không có imageFile thì set imageUrl = null
         const newStep = { ...step, imageUrl: null };
         delete newStep.imageFile;
         return newStep;
       });
 
-      console.log("Payload cuối cùng sẽ được gửi đi:", payload);
-
-      // --- BƯỚC 3: Gửi payload hoàn chỉnh đến API tạo technique ---
-      const response = await axiosCustom.post("/techniques", payload);
-      // const newTechniqueFromServer = response.data;
-      // console.log("NEW TECHNIQUE", newTechniqueFromServer);
-      // setTechniques([newTechniqueFromServer, ...techniques]);
-      const responseData = await axiosCustom.get("/techniques?pageSize=200");
-      setTechniques(responseData.data.data);
+      // Gửi payload đến API
+      await axiosCustom.post("/techniques", payload);
+      
+      // Refresh dữ liệu trang hiện tại
+      fetchTechniques(pagination.currentPage, pagination.pageSize);
+      
       setShowAddModal(false);
       toast.success("Tạo kỹ thuật thành công!");
     } catch (error) {
-      // Interceptor của bạn đã log lỗi chi tiết ra console.
-      // Ở đây, chúng ta chỉ cần hiển thị một thông báo thân thiện cho người dùng.
       const errorMessage =
         error.response?.data?.message || "Có lỗi xảy ra khi tạo kỹ thuật mới.";
       toast.error(errorMessage);
     } finally {
-      setIsSubmitting(false); // Luôn dừng trạng thái loading dù thành công hay thất bại
+      setIsSubmitting(false);
     }
   };
 
   const handleOpenEditModal = async (technique) => {
     setIsLoadingDetail(true);
     try {
-      // Gọi API lấy chi tiết technique theo ID
       const response = await axiosCustom.get(`/techniques/${technique.id}`);
-      const detailedTechnique = response.data;
-
-      // Lưu dữ liệu chi tiết vào state
-      setCurrentTechnique(detailedTechnique);
-      setShowEditModal(true); // Mở modal sau khi đã có dữ liệu
+      setCurrentTechnique(response.data);
+      setShowEditModal(true);
     } catch (error) {
       console.error("Lỗi khi tải chi tiết kỹ thuật:", error);
-      alert("Không thể tải thông tin kỹ thuật. Vui lòng thử lại.");
+      toast.error("Không thể tải thông tin kỹ thuật.");
     } finally {
       setIsLoadingDetail(false);
     }
   };
+
   const handleCloseEditModal = () => {
     setShowEditModal(false);
-    setCurrentTechnique(null); // Dọn dẹp state khi đóng
+    setCurrentTechnique(null);
   };
 
   const handleUpdateTechnique = async (formData) => {
     if (!currentTechnique) return;
-
-    // Lưu ý: Logic upload file khi sửa chưa được thêm vào.
-    // Nếu bạn muốn cho phép thay đổi ảnh/video khi sửa, bạn cần thêm logic tương tự
-    // như trong hàm `handleAddTechnique`.
-    // Dưới đây là logic cập nhật thông tin văn bản.
-
     setIsSubmitting(true);
     try {
-      // Gọi API PUT để cập nhật, endpoint thường là /techniques/{id}
       await axiosCustom.put(`/techniques/${currentTechnique.id}`, formData);
 
-      // Cập nhật lại danh sách trên giao diện
-      // Cách đơn giản nhất là gọi lại API để lấy danh sách mới
-      const response = await axiosCustom.get("/techniques?pageSize=200");
-      setTechniques(response.data.data);
+      // Cập nhật lại danh sách trang hiện tại
+      fetchTechniques(pagination.currentPage, pagination.pageSize);
 
       toast.success("Cập nhật kỹ thuật thành công!");
-      handleCloseEditModal(); // Đóng modal sau khi thành công
+      handleCloseEditModal();
     } catch (error) {
       console.error("Lỗi khi cập nhật kỹ thuật:", error);
       toast.error("Cập nhật kỹ thuật thất bại. Vui lòng thử lại.");
@@ -200,7 +212,7 @@ export function TechniquesManagementTable() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">
@@ -212,9 +224,8 @@ export function TechniquesManagementTable() {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
-          {/* Icon Plus */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -233,18 +244,21 @@ export function TechniquesManagementTable() {
         </button>
       </div>
 
-      <div className="border rounded-lg shadow-sm">
-        <div className="p-6">
+      <div className="border rounded-lg shadow-sm bg-white">
+        <div className="p-6 border-b">
           <h2 className="text-xl font-semibold">Danh sách kỹ thuật</h2>
           <p className="text-gray-600">
-            Tổng cộng {techniques.length} kỹ thuật
+            Hiển thị {techniques.length} trên tổng số {pagination.totalItems} kỹ thuật
           </p>
         </div>
-        <div className="p-6 pt-0">
+        <div className="p-0">
+          {loading ? (
+             <div className="text-center py-10 text-gray-500">Đang tải dữ liệu...</div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b">
+                <tr className="border-b bg-gray-50/50">
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">
                     Tên kỹ thuật
                   </th>
@@ -254,68 +268,127 @@ export function TechniquesManagementTable() {
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">
                     Độ khó
                   </th>
-
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">
                     Hành động
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {techniques.map((technique) => (
-                  <tr key={technique.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium">{technique.title}</td>
-                    <td className="py-3 px-4 text-gray-600">
-                      {technique.type.name}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          technique.difficulty === "Dễ"
-                            ? "bg-green-100 text-green-800"
-                            : technique.difficulty === "Trung Bình"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {technique.difficulty}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 flex gap-2">
-                      <button
-                        onClick={() => handleOpenEditModal(technique)}
-                        disabled={isLoadingDetail}
-                        className="flex items-center gap-1 px-3 py-1 border rounded-md hover:bg-gray-100"
-                      >
-                        {isLoadingDetail ? "Đang tải..." : "Sửa"}
-                      </button>
-                      <button
-                        onClick={() =>
-                          setDeleteConfirm({
-                            isOpen: true,
-                            techniqueId: technique.id,
-                            isDeleting: false,
-                          })
-                        }
-                        className="flex items-center gap-1 px-3 py-1 border rounded-md text-red-600 hover:bg-red-50"
-                      >
-                        Xóa
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {techniques.length > 0 ? (
+                  techniques.map((technique) => (
+                    <tr key={technique.id} className="border-b hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 font-medium">{technique.title}</td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {technique.type?.name || "N/A"}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            technique.difficulty === "Easy" || technique.difficulty === "Dễ"
+                              ? "bg-green-100 text-green-800"
+                              : technique.difficulty === "Medium" || technique.difficulty === "Trung Bình"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {technique.difficulty}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 flex gap-2">
+                        <button
+                          onClick={() => handleOpenEditModal(technique)}
+                          disabled={isLoadingDetail}
+                          className="flex items-center gap-1 px-3 py-1 border rounded-md hover:bg-gray-100 transition-colors"
+                        >
+                          {isLoadingDetail && currentTechnique?.id === technique.id ? "..." : "Sửa"}
+                        </button>
+                        <button
+                          onClick={() =>
+                            setDeleteConfirm({
+                              isOpen: true,
+                              techniqueId: technique.id,
+                              isDeleting: false,
+                            })
+                          }
+                          className="flex items-center gap-1 px-3 py-1 border rounded-md text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          Xóa
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                   <tr>
+                      <td colSpan={4} className="text-center py-8 text-gray-500">Không có kỹ thuật nào.</td>
+                   </tr>
+                )}
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
 
-      {/* Component modal được gọi ở đây */}
+      {/* --- PHẦN UI PHÂN TRANG --- */}
+      {pagination.totalPages > 0 && !loading && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <div className="flex-1 text-sm text-gray-500">
+            Trang {pagination.currentPage} / {pagination.totalPages}
+          </div>
+          <div className="space-x-2 flex items-center">
+            <button
+              className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Trước
+            </button>
+            
+            {/* Logic hiển thị số trang */}
+            <div className="hidden sm:flex space-x-1">
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === pagination.totalPages || Math.abs(p - pagination.currentPage) <= 1)
+                  .map((page, index, array) => {
+                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                      return (
+                        <div key={page} className="flex items-center">
+                           {showEllipsis && <span className="mx-1 text-gray-400">...</span>}
+                           <button
+                              className={`w-8 h-8 flex items-center justify-center rounded border ${
+                                pagination.currentPage === page 
+                                ? "bg-blue-600 text-white border-blue-600" 
+                                : "bg-white text-gray-700 hover:bg-gray-50"
+                              }`}
+                              onClick={() => handlePageChange(page)}
+                           >
+                              {page}
+                           </button>
+                        </div>
+                      );
+                  })
+                }
+            </div>
+
+            <button
+              className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
+              disabled={pagination.currentPage === pagination.totalPages}
+            >
+              Sau
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Components */}
       {showAddModal && (
         <CreateTechniqueModal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           onSubmit={handleAddTechnique}
-          isSubmitting={isSubmitting} // Truyền trạng thái isSubmitting vào modal
+          isSubmitting={isSubmitting}
         />
       )}
 
@@ -324,7 +397,7 @@ export function TechniquesManagementTable() {
           isOpen={showEditModal}
           onClose={handleCloseEditModal}
           onSubmit={handleUpdateTechnique}
-          techniqueData={currentTechnique} // Truyền dữ liệu của kỹ thuật đang được sửa vào modal
+          techniqueData={currentTechnique}
         />
       )}
 

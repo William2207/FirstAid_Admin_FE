@@ -7,106 +7,129 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Trash2, Edit2, Plus } from "lucide-react";
+import { Trash2, Edit2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { CreateQuizQuestionModal } from "./modal/CreateQuizQuestionModal";
 import { EditQuizQuestionModal } from "./modal/EditQuizQuestionModal";
 import { ConfirmDeleteModal } from "./modal/ConfirmDeleteModal";
 import axiosCustom from "@/config/axiosCustom";
 import { toast } from "sonner";
+
 export function QuizzesManagementTable() {
-  // State để lưu danh sách câu hỏi từ API
+  // --- STATE DỮ LIỆU ---
   const [quizzes, setQuizzes] = useState([]);
-  // State để quản lý trạng thái tải dữ liệu
   const [loading, setLoading] = useState(true);
-  // State để lưu thông báo lỗi nếu gọi API thất bại
   const [error, setError] = useState(null);
-  // State quản lý việc mở/đóng modal tạo câu hỏi
+
+  // --- STATE PHÂN TRANG ---
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    pageSize: 10,
+    totalPages: 1,
+    totalItems: 0,
+  });
+
+  // --- STATE MODAL ---
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  // State quản lý việc mở/đóng modal chỉnh sửa câu hỏi
   const [editModalOpen, setEditModalOpen] = useState(false);
-  // State lưu trữ câu hỏi đang được chọn để chỉnh sửa
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  // State quản lý modal xác nhận xóa
   const [deleteConfirm, setDeleteConfirm] = useState({
     isOpen: false,
     questionId: null,
     isDeleting: false,
   });
 
-  // useEffect sẽ chạy một lần sau khi component được render lần đầu
+  // Hàm gọi API lấy danh sách (được tách ra để tái sử dụng)
+  const fetchQuizzes = async (page = 1, size = 10) => {
+    try {
+      setLoading(true);
+      // Truyền tham số page và pageSize vào query string
+      // API của bạn có thể dùng ?page=...&pageSize=... hoặc ?page=...&limit=...
+      // Hãy điều chỉnh 'pageSize' thành 'limit' nếu backend yêu cầu tên đó.
+      const response = await axiosCustom.get(
+        `/quiz?page=${page}&pageSize=${size}`
+      );
+      
+      const { data, currentPage, totalPages, totalItems, pageSize } = response.data;
+
+      console.log("Fetched quizzes:", response.data);
+      setQuizzes(data);
+      
+      // Cập nhật state phân trang từ response
+      setPagination({
+        currentPage: currentPage,
+        totalPages: totalPages,
+        pageSize: pageSize,
+        totalItems: totalItems,
+      });
+      setError(null);
+    } catch (err) {
+      setError("Không thể tải được danh sách câu hỏi.");
+      console.error("Error fetching quizzes:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // useEffect chạy khi component mount hoặc khi currentPage thay đổi
   useEffect(() => {
-    // Định nghĩa hàm async để gọi API
-    const fetchQuizzes = async () => {
-      try {
-        setLoading(true); // Bắt đầu quá trình tải
-        const response = await axiosCustom.get("/quiz");
-        setQuizzes(response.data); // Lưu dữ liệu vào state
-        setError(null); // Reset lỗi nếu thành công
-      } catch (err) {
-        setError("Không thể tải được danh sách câu hỏi.");
-        console.error("Error fetching quizzes:", err);
-      } finally {
-        setLoading(false); // Kết thúc quá trình tải, dù thành công hay thất bại
-      }
-    };
+    fetchQuizzes(pagination.currentPage, pagination.pageSize);
+  }, [pagination.currentPage]); // Chỉ phụ thuộc vào currentPage (pageSize thường cố định)
 
-    fetchQuizzes();
-  }, []); // Mảng phụ thuộc rỗng đảm bảo hook này chỉ chạy một lần
-
-  // useMemo để nhóm các câu hỏi theo techniqueId một cách hiệu quả.
-  // Hàm này chỉ chạy lại khi state 'quizzes' thay đổi.
+  // Nhóm câu hỏi (Logic giữ nguyên)
   const groupedQuizzes = useMemo(() => {
     if (!quizzes) return {};
-
-    // Sử dụng reduce để chuyển mảng câu hỏi thành một object được nhóm
     return quizzes.reduce((acc, question) => {
       const { techniqueId, techniqueName } = question;
-
-      // Nếu nhóm cho kỹ thuật này chưa có, khởi tạo nó
       if (!acc[techniqueId]) {
         acc[techniqueId] = {
           techniqueName: techniqueName,
           questions: [],
         };
       }
-
-      // Thêm câu hỏi vào nhóm tương ứng
       acc[techniqueId].questions.push(question);
-
       return acc;
     }, {});
   }, [quizzes]);
 
+  // --- XỬ LÝ SỰ KIỆN ---
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setPagination((prev) => ({ ...prev, currentPage: newPage }));
+    }
+  };
+
   const handleAddQuestion = async (question) => {
     try {
-      const response = await axiosCustom.post("/quiz", question);
-      const questionFromServer = response.data;
-      console.log("Added question from server:", questionFromServer);
-      setQuizzes([...quizzes, questionFromServer]);
+      await axiosCustom.post("/quiz", question);
+      toast.success("Thêm câu hỏi thành công!");
       setCreateModalOpen(false);
+      // Refresh lại data để thấy item mới (và cập nhật phân trang)
+      fetchQuizzes(pagination.currentPage, pagination.pageSize);
     } catch (error) {
       console.error("Error adding question:", error);
+      toast.error("Thêm thất bại");
     }
   };
 
   const handleUpdateQuestion = async (updatedQuestion) => {
     try {
-      console.log("Updating question:", updatedQuestion);
       const response = await axiosCustom.put(
         `/quiz/${updatedQuestion.id}`,
         updatedQuestion
       );
+      // Với Update, có thể cập nhật state local để tránh loading lại trang
       const updatedQuestionFromServer = response.data;
-      console.log("Updated question from server:", updatedQuestionFromServer);
-
       setQuizzes(
         quizzes.map((q) =>
           q.id === updatedQuestionFromServer.id ? updatedQuestionFromServer : q
         )
       );
       setEditModalOpen(false);
+      toast.success("Cập nhật thành công!");
     } catch (error) {
       console.error("Error updating question:", error);
+      toast.error("Cập nhật thất bại");
     }
   };
 
@@ -114,14 +137,21 @@ export function QuizzesManagementTable() {
     try {
       setDeleteConfirm({ ...deleteConfirm, isDeleting: true });
       await axiosCustom.delete(`/quiz/${id}`);
-      setQuizzes((prevQuizzes) => prevQuizzes.filter((q) => q.id !== id));
-
+      
       toast.success("Xóa câu hỏi thành công!");
       setDeleteConfirm({ isOpen: false, questionId: null, isDeleting: false });
+      
+      // Logic xử lý khi xóa item cuối cùng của trang
+      if (quizzes.length === 1 && pagination.currentPage > 1) {
+        // Nếu trang hiện tại chỉ còn 1 item và xóa nó -> lùi về trang trước
+        setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }));
+      } else {
+        // Ngược lại, reload trang hiện tại
+        fetchQuizzes(pagination.currentPage, pagination.pageSize);
+      }
     } catch (error) {
       console.error("Error deleting question:", error);
-
-      toast.error("Xóa câu hỏi thất bại. Vui lòng thử lại.");
+      toast.error("Xóa câu hỏi thất bại.");
       setDeleteConfirm({ ...deleteConfirm, isDeleting: false });
     }
   };
@@ -131,19 +161,19 @@ export function QuizzesManagementTable() {
     setEditModalOpen(true);
   };
 
-  // Hiển thị giao diện tải trong khi chờ API
-  if (loading) {
+  // --- RENDER ---
+
+  if (loading && quizzes.length === 0) {
     return <div className="text-center p-8">Đang tải dữ liệu câu hỏi...</div>;
   }
 
-  // Hiển thị thông báo lỗi nếu API thất bại
   if (error) {
     return <div className="text-center p-8 text-red-600">Lỗi: {error}</div>;
   }
 
   return (
-    <div className="space-y-4">
-      {/* Phần Header của trang */}
+    <div className="space-y-4 pb-10">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
@@ -162,18 +192,18 @@ export function QuizzesManagementTable() {
         </Button>
       </div>
 
-      {/* Lặp qua dữ liệu đã được nhóm để render các Card */}
+      {/* Danh sách câu hỏi */}
       {Object.entries(groupedQuizzes).map(([techniqueId, group]) => {
         if (group.questions.length === 0) return null;
 
         return (
-          <Card key={techniqueId}>
+          <Card key={techniqueId} className="mb-4">
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle>{group.techniqueName}</CardTitle>
                   <CardDescription>
-                    {group.questions.length} câu hỏi
+                    Hiển thị {group.questions.length} câu hỏi trong trang này
                   </CardDescription>
                 </div>
               </div>
@@ -262,7 +292,64 @@ export function QuizzesManagementTable() {
         );
       })}
 
-      {/* Các component Modal */}
+      {/* --- PHÂN TRANG (PAGINATION UI) --- */}
+      {pagination.totalPages > 0 && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <div className="flex-1 text-sm text-muted-foreground">
+            Trang {pagination.currentPage} / {pagination.totalPages} 
+            ({pagination.totalItems} kết quả)
+          </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1 || loading}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Trước
+            </Button>
+            
+            {/* Hiển thị các số trang (đơn giản) */}
+            <div className="inline-flex gap-1 mx-2">
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  // Chỉ hiện trang đầu, cuối, và xung quanh trang hiện tại (optional logic)
+                  .filter(p => p === 1 || p === pagination.totalPages || Math.abs(p - pagination.currentPage) <= 1)
+                  .map((page, index, array) => {
+                      // Logic thêm dấu "..." nếu danh sách bị ngắt quãng
+                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                      
+                      return (
+                        <div key={page} className="flex items-center">
+                           {showEllipsis && <span className="mx-1">...</span>}
+                           <Button
+                              variant={pagination.currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              className={`w-8 h-8 p-0 ${pagination.currentPage === page ? "pointer-events-none" : ""}`}
+                              onClick={() => handlePageChange(page)}
+                           >
+                              {page}
+                           </Button>
+                        </div>
+                      );
+                  })
+                }
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
+              disabled={pagination.currentPage === pagination.totalPages || loading}
+            >
+              Sau
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
       <CreateQuizQuestionModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}

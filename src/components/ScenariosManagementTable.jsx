@@ -7,14 +7,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Trash2, Edit2, Plus } from "lucide-react";
+import { Trash2, Edit2, Plus, ChevronLeft, ChevronRight } from "lucide-react"; // Import icon phân trang
 import { CreateScenarioModal } from "./modal/CreateScenarioModal";
 import { EditScenarioModal } from "./modal/EditScenarioModal";
 import { ConfirmDeleteModal } from "./modal/ConfirmDeleteModal";
 import axiosCustom from "@/config/axiosCustom";
 import { toast } from "sonner";
+
 export function ScenariosManagementTable() {
+  // --- STATE DỮ LIỆU ---
   const [scenarios, setScenarios] = useState([]);
+  const [loading, setLoading] = useState(true); // Thêm trạng thái loading
+
+  // --- STATE PHÂN TRANG ---
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    pageSize: 10,
+    totalPages: 1,
+    totalItems: 0,
+  });
+
+  // --- STATE MODAL ---
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingScenario, setEditingScenario] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({
@@ -23,66 +36,94 @@ export function ScenariosManagementTable() {
     isDeleting: false,
   });
 
-  //fetch scenarios from API
-  useEffect(() => {
-    const fetchScenarios = async () => {
-      try {
-        const response = await axiosCustom.get("/scenarios");
-        setScenarios(response.data.data);
-        //console.log("Fetched scenarios:", response.data.data);
-      } catch (error) {
-        console.error("Error fetching scenarios:", error);
-      }
-    };
-    fetchScenarios();
-  }, []);
+  // Hàm fetch scenarios (Tách ra để tái sử dụng)
+  const fetchScenarios = async (page = 1, size = 10) => {
+    try {
+      setLoading(true);
+      // Gọi API kèm tham số phân trang
+      const response = await axiosCustom.get(`/scenarios?page=${page}&pageSize=${size}`);
+      
+      // Destructure dữ liệu từ server (Giả định cấu trúc trả về chuẩn như các trang trước)
+      const { data, currentPage, totalPages, totalItems, pageSize } = response.data;
+      
+      setScenarios(data);
+      setPagination({
+        currentPage: currentPage,
+        totalPages: totalPages,
+        pageSize: pageSize,
+        totalItems: totalItems,
+      });
+    } catch (error) {
+      console.error("Error fetching scenarios:", error);
+      toast.error("Không thể tải danh sách scenario.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Hàm tạo mới scenario 
+  // useEffect gọi API mỗi khi currentPage thay đổi
+  useEffect(() => {
+    fetchScenarios(pagination.currentPage, pagination.pageSize);
+  }, [pagination.currentPage]);
+
+  // Xử lý chuyển trang
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setPagination((prev) => ({ ...prev, currentPage: newPage }));
+    }
+  };
+
+  // Hàm tạo mới scenario
   const handleCreateScenario = async (data) => {
     try {
-      const response = await axiosCustom.post("/scenarios", data);
-      const newScenario = response.data;
-      setScenarios([...scenarios, newScenario]);
+      await axiosCustom.post("/scenarios", data);
+      
+      // Refresh lại trang hiện tại (hoặc trang 1) sau khi tạo
+      fetchScenarios(pagination.currentPage, pagination.pageSize);
+      
       setIsCreateOpen(false);
       toast.success("Tạo scenario thành công!");
-      //console.log("Created scenario:", newScenario);
     } catch (error) {
       console.error("Error creating scenario:", error);
       toast.error("Lỗi khi tạo scenario. Vui lòng thử lại.");
     }
   };
 
-  // Hàm chỉnh sửa scenario 
+  // Hàm chỉnh sửa scenario
   const handleEditScenario = async (data) => {
     try {
-      const response = await axiosCustom.put(
+      await axiosCustom.put(
         `/scenarios/${editingScenario.id}`,
         data
       );
-      const updatedScenario = response.data;
-      setScenarios(
-        scenarios.map((s) =>
-          s.id === editingScenario.id ? updatedScenario : s
-        )
-      );
+      
+      // Refresh lại dữ liệu trang hiện tại
+      fetchScenarios(pagination.currentPage, pagination.pageSize);
+      
       setEditingScenario(null);
       toast.success("Cập nhật scenario thành công!");
-      console.log("Updated scenario:", updatedScenario);
     } catch (error) {
       console.error("Error updating scenario:", error);
       toast.error("Lỗi khi cập nhật scenario. Vui lòng thử lại.");
     }
   };
 
-  // Hàm xóa scenario - gọi API
+  // Hàm xóa scenario
   const handleDelete = async (id) => {
     try {
       setDeleteConfirm({ ...deleteConfirm, isDeleting: true });
       await axiosCustom.delete(`/scenarios/${id}`);
-      setScenarios(scenarios.filter((s) => s.id !== id));
+      
       toast.success("Xóa scenario thành công!");
       setDeleteConfirm({ isOpen: false, scenarioId: null, isDeleting: false });
-      //console.log("Deleted scenario with id:", id);
+
+      // Logic xử lý khi xóa item cuối cùng của trang
+      if (scenarios.length === 1 && pagination.currentPage > 1) {
+         setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }));
+      } else {
+         fetchScenarios(pagination.currentPage, pagination.pageSize);
+      }
+
     } catch (error) {
       console.error("Error deleting scenario:", error);
       toast.error("Lỗi khi xóa scenario. Vui lòng thử lại.");
@@ -90,8 +131,10 @@ export function ScenariosManagementTable() {
     }
   };
 
-  // Hàm mở modal sửa - gọi API lấy chi tiết scenario
+  // Hàm mở modal sửa
   const handleOpenEditModal = async (scenario) => {
+    // Mở modal ngay lập tức để người dùng biết hệ thống đang phản hồi
+    // Bạn có thể thêm loading state riêng cho modal nếu muốn UX tốt hơn
     try {
       const response = await axiosCustom.get(`/scenarios/${scenario.id}`);
       const detailedScenario = response.data;
@@ -99,13 +142,14 @@ export function ScenariosManagementTable() {
       console.log("Fetched scenario details:", detailedScenario);
     } catch (error) {
       console.error("Error fetching scenario details:", error);
-      // Nếu lỗi, vẫn mở modal với dữ liệu cơ bản
+      // Nếu API chi tiết lỗi, fallback về dữ liệu đang có trên bảng
       setEditingScenario(scenario);
+      toast.warning("Không thể tải chi tiết đầy đủ, đang hiển thị dữ liệu cơ bản.");
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
@@ -128,10 +172,13 @@ export function ScenariosManagementTable() {
         <CardHeader>
           <CardTitle>Danh sách Scenario</CardTitle>
           <CardDescription>
-            Tổng cộng {scenarios.length} scenario
+             Hiển thị {scenarios.length} trên tổng số {pagination.totalItems} scenario
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {loading ? (
+             <div className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -157,84 +204,143 @@ export function ScenariosManagementTable() {
                 </tr>
               </thead>
               <tbody>
-                {scenarios.map((scenario) => (
-                  <tr
-                    key={scenario.id}
-                    className="border-b border-border hover:bg-muted/50 transition-colors"
-                  >
-                    <td className="py-3 px-4 text-foreground font-medium">
-                      {scenario.title}
-                    </td>
-                    <td className="py-3 px-4 text-foreground/70 text-sm">
-                      {scenario.category === "practice"
-                        ? "Thực hành"
-                        : "Thử thách"}
-                    </td>
-                    <td className="py-3 px-4 text-foreground/70">
-                      {scenario.stepCount}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          scenario.difficulty === "Dễ"
-                            ? "bg-green-50 text-green-700"
-                            : scenario.difficulty === "Trung Bình"
-                            ? "bg-yellow-50 text-yellow-700"
-                            : "bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {scenario.difficulty === "Dễ"
-                          ? "Dễ"
-                          : scenario.difficulty === "Trung Bình"
-                          ? "Trung bình"
-                          : "Khó"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          scenario.isPublished === true
-                            ? "bg-blue-50 text-blue-700"
-                            : "bg-gray-50 text-gray-700"
-                        }`}
-                      >
-                        {scenario.isPublished ? "Đã xuất bản" : "Nháp"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 flex gap-2">
-                      <Button
-                        onClick={() => handleOpenEditModal(scenario)}
-                        variant="outline"
-                        size="sm"
-                        className="gap-1 bg-transparent"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Sửa
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
-                        onClick={() =>
-                          setDeleteConfirm({
-                            isOpen: true,
-                            scenarioId: scenario.id,
-                            isDeleting: false,
-                          })
-                        }
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Xóa
-                      </Button>
+                {scenarios.length > 0 ? (
+                  scenarios.map((scenario) => (
+                    <tr
+                      key={scenario.id}
+                      className="border-b border-border hover:bg-muted/50 transition-colors"
+                    >
+                      <td className="py-3 px-4 text-foreground font-medium">
+                        {scenario.title}
+                      </td>
+                      <td className="py-3 px-4 text-foreground/70 text-sm">
+                        {scenario.category === "practice"
+                          ? "Thực hành"
+                          : "Thử thách"}
+                      </td>
+                      <td className="py-3 px-4 text-foreground/70">
+                        {scenario.stepCount}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            scenario.difficulty === "Easy" || scenario.difficulty === "Dễ"
+                              ? "bg-green-50 text-green-700"
+                              : scenario.difficulty === "Medium" || scenario.difficulty === "Trung Bình"
+                              ? "bg-yellow-50 text-yellow-700"
+                              : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {scenario.difficulty}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            scenario.isPublished === true
+                              ? "bg-blue-50 text-blue-700"
+                              : "bg-gray-50 text-gray-700"
+                          }`}
+                        >
+                          {scenario.isPublished ? "Đã xuất bản" : "Nháp"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 flex gap-2">
+                        <Button
+                          onClick={() => handleOpenEditModal(scenario)}
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 bg-transparent"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          Sửa
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
+                          onClick={() =>
+                            setDeleteConfirm({
+                              isOpen: true,
+                              scenarioId: scenario.id,
+                              isDeleting: false,
+                            })
+                          }
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Xóa
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                      Không có scenario nào.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
+          )}
         </CardContent>
       </Card>
 
+      {/* --- PHÂN TRANG (PAGINATION UI) --- */}
+      {pagination.totalPages > 0 && !loading && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <div className="flex-1 text-sm text-muted-foreground">
+            Trang {pagination.currentPage} / {pagination.totalPages}
+          </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Trước
+            </Button>
+            
+            {/* Logic hiển thị số trang */}
+            <div className="inline-flex gap-1 mx-2">
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === pagination.totalPages || Math.abs(p - pagination.currentPage) <= 1)
+                  .map((page, index, array) => {
+                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                      return (
+                        <div key={page} className="flex items-center">
+                           {showEllipsis && <span className="mx-1 text-sm">...</span>}
+                           <Button
+                              variant={pagination.currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              className={`w-8 h-8 p-0 ${pagination.currentPage === page ? "pointer-events-none" : ""}`}
+                              onClick={() => handlePageChange(page)}
+                           >
+                              {page}
+                           </Button>
+                        </div>
+                      );
+                  })
+                }
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
+              disabled={pagination.currentPage === pagination.totalPages}
+            >
+              Sau
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Các Modal */}
       <CreateScenarioModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}

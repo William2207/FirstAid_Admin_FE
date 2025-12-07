@@ -27,8 +27,8 @@ export default function HomePage() {
         // Gọi song song tất cả các API để tiết kiệm thời gian
         const [techRes, quizRes, catRes, scenRes] = await Promise.all([
           axiosCustom.get("/techniques/all"),
-          axiosCustom.get("/quiz"),
-          axiosCustom.get("/techniquetypes"),
+          axiosCustom.get("/quiz/all"),
+          axiosCustom.get("/techniquetypes/all"),
           axiosCustom.get("/scenarios/all"),
         ]);
 

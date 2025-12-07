@@ -8,6 +8,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const navigationItems = [
   {
@@ -42,17 +43,13 @@ const cn = (...classes) => classes.filter(Boolean).join(" ");
 export function AdminSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const pathname = location.pathname;
 
   const handleLogout = () => {
-    // if (!window.confirm("Bạn có chắc chắn muốn đăng xuất không?")) return;
-
-    // Xóa các key đã lưu trong sessionStorage lúc đăng nhập
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("roles");
-    sessionStorage.removeItem("user");
-
-    navigate("/login");
+    // Gọi logout từ AuthContext (sẽ xóa sessionStorage)
+    logout();
+    navigate("/auth/login");
   };
 
   return (
