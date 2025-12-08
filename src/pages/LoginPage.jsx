@@ -47,8 +47,6 @@ export default function LoginPage() {
         }
       }
 
-      console.log("Has Admin role?", hasAdminRole);
-
       if (!hasAdminRole) {
         setError("Chỉ có người dùng Admin mới có thể truy cập hệ thống này.");
         toast.error("Quyền truy cập bị từ chối: Chỉ Admin được phép");

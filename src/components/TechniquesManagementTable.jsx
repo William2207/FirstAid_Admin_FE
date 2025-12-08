@@ -10,7 +10,7 @@ export function TechniquesManagementTable() {
   // --- STATE DỮ LIỆU ---
   const [techniques, setTechniques] = useState([]);
   const [loading, setLoading] = useState(true); // State loading cho bảng
-  
+
   // --- STATE PHÂN TRANG ---
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -38,11 +38,14 @@ export function TechniquesManagementTable() {
     try {
       setLoading(true);
       // Gọi API với tham số phân trang
-      const response = await axiosCustom.get(`/techniques?page=${page}&pageSize=${size}`);
-      
+      const response = await axiosCustom.get(
+        `/techniques?page=${page}&pageSize=${size}`
+      );
+
       // Destructure dữ liệu trả về từ server
-      const { data, currentPage, totalPages, totalItems, pageSize } = response.data;
-      
+      const { data, currentPage, totalPages, totalItems, pageSize } =
+        response.data;
+
       setTechniques(data);
       setPagination({
         currentPage: currentPage,
@@ -74,17 +77,20 @@ export function TechniquesManagementTable() {
     try {
       setDeleteConfirm({ ...deleteConfirm, isDeleting: true });
       await axiosCustom.delete(`/techniques/${id}`);
-      
+
       toast.success("Xóa kỹ thuật thành công!");
       setDeleteConfirm({ isOpen: false, techniqueId: null, isDeleting: false });
 
       // Logic xử lý khi xóa item cuối cùng của trang
       if (techniques.length === 1 && pagination.currentPage > 1) {
-         // Lùi về trang trước
-         setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }));
+        // Lùi về trang trước
+        setPagination((prev) => ({
+          ...prev,
+          currentPage: prev.currentPage - 1,
+        }));
       } else {
-         // Reload trang hiện tại
-         fetchTechniques(pagination.currentPage, pagination.pageSize);
+        // Reload trang hiện tại
+        fetchTechniques(pagination.currentPage, pagination.pageSize);
       }
     } catch (error) {
       console.error("Lỗi khi xóa kỹ thuật:", error);
@@ -121,8 +127,10 @@ export function TechniquesManagementTable() {
       console.log("Bắt đầu quá trình upload file...");
       const uploadPromises = [];
 
-      if (formData.videoFile) uploadPromises.push(uploadFile(formData.videoFile));
-      if (formData.imageFile) uploadPromises.push(uploadFile(formData.imageFile));
+      if (formData.videoFile)
+        uploadPromises.push(uploadFile(formData.videoFile));
+      if (formData.imageFile)
+        uploadPromises.push(uploadFile(formData.imageFile));
 
       formData.steps.forEach((step) => {
         if (step.imageFile) {
@@ -158,10 +166,10 @@ export function TechniquesManagementTable() {
 
       // Gửi payload đến API
       await axiosCustom.post("/techniques", payload);
-      
+
       // Refresh dữ liệu trang hiện tại
       fetchTechniques(pagination.currentPage, pagination.pageSize);
-      
+
       setShowAddModal(false);
       toast.success("Tạo kỹ thuật thành công!");
     } catch (error) {
@@ -195,17 +203,112 @@ export function TechniquesManagementTable() {
   const handleUpdateTechnique = async (formData) => {
     if (!currentTechnique) return;
     setIsSubmitting(true);
+    
     try {
-      await axiosCustom.put(`/techniques/${currentTechnique.id}`, formData);
+      console.log("📦 Form data nhận được:", formData);
+      
+      const uploadPromises = [];
+      const filesToUpload = {
+        hasVideoFile: formData.videoFile && formData.videoFile instanceof File,
+        hasImageFile: formData.imageFile && formData.imageFile instanceof File,
+        stepImageFiles: [],
+      };
 
-      // Cập nhật lại danh sách trang hiện tại
-      fetchTechniques(pagination.currentPage, pagination.pageSize);
+      // Upload files
+      if (filesToUpload.hasVideoFile) {
+        console.log("⬆️ Uploading video file...");
+        uploadPromises.push(uploadFile(formData.videoFile));
+      }
 
+      if (filesToUpload.hasImageFile) {
+        console.log("⬆️ Uploading image file...");
+        uploadPromises.push(uploadFile(formData.imageFile));
+      }
+
+      if (formData.steps && formData.steps.length > 0) {
+        formData.steps.forEach((step, idx) => {
+          if (step.imageFile && step.imageFile instanceof File) {
+            console.log(`⬆️ Uploading step ${idx} image...`);
+            uploadPromises.push(uploadFile(step.imageFile));
+            filesToUpload.stepImageFiles.push(idx);
+          }
+        });
+      }
+
+      // ⏳ Chờ upload xong
+      const uploadedUrls = await Promise.all(uploadPromises);
+      console.log("✅ Upload hoàn tất:", uploadedUrls);
+
+      // ✅ Tạo payload với đúng các field từ formData
+      const payload = {
+        name: formData.name,
+        title: formData.title,
+        description: formData.description,
+        difficulty: formData.difficulty,
+        duration: formData.duration,
+        icon: formData.icon,
+        techniqueTypeId: formData.techniqueTypeId,
+      };
+
+      let urlIndex = 0;
+
+      // Gán URL video
+      if (filesToUpload.hasVideoFile) {
+        payload.videoUrl = uploadedUrls[urlIndex++];
+        console.log("✅ Gán videoUrl mới:", payload.videoUrl);
+      } else if (currentTechnique.videoUrl) {
+        payload.videoUrl = currentTechnique.videoUrl;
+        console.log("📌 Giữ videoUrl cũ:", payload.videoUrl);
+      }
+
+      // Gán URL ảnh
+      if (filesToUpload.hasImageFile) {
+        payload.imageUrl = uploadedUrls[urlIndex++];
+        console.log("✅ Gán imageUrl mới:", payload.imageUrl);
+      } else if (currentTechnique.imageUrl) {
+        payload.imageUrl = currentTechnique.imageUrl;
+        console.log("📌 Giữ imageUrl cũ:", payload.imageUrl);
+      }
+
+      // Xử lý steps (nếu có)
+      if (formData.steps && formData.steps.length > 0) {
+        payload.steps = formData.steps.map((step, idx) => {
+          const newStep = {
+            description: step.description,
+            orderIndex: step.orderIndex,
+            // ... các field khác của step
+          };
+          
+          if (filesToUpload.stepImageFiles.includes(idx)) {
+            newStep.imageUrl = uploadedUrls[urlIndex++];
+            console.log(`✅ Step ${idx} - gán imageUrl mới:`, newStep.imageUrl);
+          } else if (currentTechnique.steps?.[idx]?.imageUrl) {
+            newStep.imageUrl = currentTechnique.steps[idx].imageUrl;
+            console.log(`📌 Step ${idx} - giữ imageUrl cũ:`, newStep.imageUrl);
+          }
+          
+          return newStep;
+        });
+      }
+
+      console.log("📤 Payload cuối cùng gửi lên BE:", payload);
+
+      // ⏳ Chờ API update xong
+      await axiosCustom.put(`/techniques/${currentTechnique.id}`, payload);
+
+      // ⏳ Chờ fetch lại data
+      await fetchTechniques(pagination.currentPage, pagination.pageSize);
+
+      // ✅ Tất cả xong mới show toast và đóng modal
       toast.success("Cập nhật kỹ thuật thành công!");
       handleCloseEditModal();
+      
     } catch (error) {
-      console.error("Lỗi khi cập nhật kỹ thuật:", error);
-      toast.error("Cập nhật kỹ thuật thất bại. Vui lòng thử lại.");
+      console.error("❌ Lỗi:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        "Cập nhật kỹ thuật thất bại. Vui lòng thử lại.";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -248,83 +351,101 @@ export function TechniquesManagementTable() {
         <div className="p-6 border-b">
           <h2 className="text-xl font-semibold">Danh sách kỹ thuật</h2>
           <p className="text-gray-600">
-            Hiển thị {techniques.length} trên tổng số {pagination.totalItems} kỹ thuật
+            Hiển thị {techniques.length} trên tổng số {pagination.totalItems} kỹ
+            thuật
           </p>
         </div>
         <div className="p-0">
           {loading ? (
-             <div className="text-center py-10 text-gray-500">Đang tải dữ liệu...</div>
+            <div className="text-center py-10 text-gray-500">
+              Đang tải dữ liệu...
+            </div>
           ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-gray-50/50">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                    Tên kỹ thuật
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                    Danh mục
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                    Độ khó
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                    Hành động
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {techniques.length > 0 ? (
-                  techniques.map((technique) => (
-                    <tr key={technique.id} className="border-b hover:bg-gray-50 transition-colors">
-                      <td className="py-3 px-4 font-medium">{technique.title}</td>
-                      <td className="py-3 px-4 text-gray-600">
-                        {technique.type?.name || "N/A"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            technique.difficulty === "Easy" || technique.difficulty === "Dễ"
-                              ? "bg-green-100 text-green-800"
-                              : technique.difficulty === "Medium" || technique.difficulty === "Trung Bình"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {technique.difficulty}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 flex gap-2">
-                        <button
-                          onClick={() => handleOpenEditModal(technique)}
-                          disabled={isLoadingDetail}
-                          className="flex items-center gap-1 px-3 py-1 border rounded-md hover:bg-gray-100 transition-colors"
-                        >
-                          {isLoadingDetail && currentTechnique?.id === technique.id ? "..." : "Sửa"}
-                        </button>
-                        <button
-                          onClick={() =>
-                            setDeleteConfirm({
-                              isOpen: true,
-                              techniqueId: technique.id,
-                              isDeleting: false,
-                            })
-                          }
-                          className="flex items-center gap-1 px-3 py-1 border rounded-md text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          Xóa
-                        </button>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-gray-50/50">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Tên kỹ thuật
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Danh mục
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Độ khó
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Hành động
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {techniques.length > 0 ? (
+                    techniques.map((technique) => (
+                      <tr
+                        key={technique.id}
+                        className="border-b hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-3 px-4 font-medium">
+                          {technique.title}
+                        </td>
+                        <td className="py-3 px-4 text-gray-600">
+                          {technique.type?.name || "N/A"}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              technique.difficulty === "Easy" ||
+                              technique.difficulty === "Dễ"
+                                ? "bg-green-100 text-green-800"
+                                : technique.difficulty === "Medium" ||
+                                  technique.difficulty === "Trung Bình"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {technique.difficulty}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 flex gap-2">
+                          <button
+                            onClick={() => handleOpenEditModal(technique)}
+                            disabled={isLoadingDetail}
+                            className="flex items-center gap-1 px-3 py-1 border rounded-md hover:bg-gray-100 transition-colors"
+                          >
+                            {isLoadingDetail &&
+                            currentTechnique?.id === technique.id
+                              ? "..."
+                              : "Sửa"}
+                          </button>
+                          <button
+                            onClick={() =>
+                              setDeleteConfirm({
+                                isOpen: true,
+                                techniqueId: technique.id,
+                                isDeleting: false,
+                              })
+                            }
+                            className="flex items-center gap-1 px-3 py-1 border rounded-md text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            Xóa
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="text-center py-8 text-gray-500"
+                      >
+                        Không có kỹ thuật nào.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                   <tr>
-                      <td colSpan={4} className="text-center py-8 text-gray-500">Không có kỹ thuật nào.</td>
-                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
@@ -344,30 +465,36 @@ export function TechniquesManagementTable() {
               <ChevronLeft className="h-4 w-4 mr-1" />
               Trước
             </button>
-            
+
             {/* Logic hiển thị số trang */}
             <div className="hidden sm:flex space-x-1">
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                  .filter(p => p === 1 || p === pagination.totalPages || Math.abs(p - pagination.currentPage) <= 1)
-                  .map((page, index, array) => {
-                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
-                      return (
-                        <div key={page} className="flex items-center">
-                           {showEllipsis && <span className="mx-1 text-gray-400">...</span>}
-                           <button
-                              className={`w-8 h-8 flex items-center justify-center rounded border ${
-                                pagination.currentPage === page 
-                                ? "bg-blue-600 text-white border-blue-600" 
-                                : "bg-white text-gray-700 hover:bg-gray-50"
-                              }`}
-                              onClick={() => handlePageChange(page)}
-                           >
-                              {page}
-                           </button>
-                        </div>
-                      );
-                  })
-                }
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                .filter(
+                  (p) =>
+                    p === 1 ||
+                    p === pagination.totalPages ||
+                    Math.abs(p - pagination.currentPage) <= 1
+                )
+                .map((page, index, array) => {
+                  const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                  return (
+                    <div key={page} className="flex items-center">
+                      {showEllipsis && (
+                        <span className="mx-1 text-gray-400">...</span>
+                      )}
+                      <button
+                        className={`w-8 h-8 flex items-center justify-center rounded border ${
+                          pagination.currentPage === page
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-gray-700 hover:bg-gray-50"
+                        }`}
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </button>
+                    </div>
+                  );
+                })}
             </div>
 
             <button

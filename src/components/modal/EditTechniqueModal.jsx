@@ -25,7 +25,9 @@ export function EditTechniqueModal({
           description: techniqueData.description,
           difficulty: techniqueData.difficulty,
           videoUrl: techniqueData.videoUrl,
+          videoFile: null, // Thêm videoFile
           imageUrl: techniqueData.imageUrl,
+          imageFile: null, // Thêm imageFile
           duration: techniqueData.duration,
           icon: techniqueData.icon,
           techniqueTypeId: techniqueData.techniqueTypeId,
@@ -36,7 +38,9 @@ export function EditTechniqueModal({
           description: "",
           difficulty: "Trung Bình",
           videoUrl: "",
+          videoFile: null,
           imageUrl: "",
+          imageFile: null,
           duration: 0,
           icon: "",
           techniqueTypeId: "",
@@ -58,7 +62,6 @@ export function EditTechniqueModal({
         setIsLoadingTypes(true);
         setFetchError(null);
         try {
-          // Thay đổi '/technique-types' thành endpoint API thực tế của bạn
           const response = await axiosCustom.get("/techniquetypes/all");
           setTechniqueTypes(response.data); // Giả sử API trả về dữ liệu trong response.data
         } catch (error) {
@@ -94,6 +97,17 @@ export function EditTechniqueModal({
         delete newErrors[name];
         return newErrors;
       });
+    }
+  };
+
+  // Hàm mới để xử lý việc chọn file
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    if (files.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: files[0],
+      }));
     }
   };
 
@@ -194,7 +208,6 @@ export function EditTechniqueModal({
         ...formData,
         steps,
       });
-      onClose();
     }
   };
 
@@ -386,38 +399,54 @@ export function EditTechniqueModal({
 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    URL video
+                    Tải lên video
                   </label>
                   <input
-                    type="text"
-                    name="videoUrl"
-                    value={formData.videoUrl}
-                    onChange={handleInputChange}
-                    maxLength={500}
-                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                    type="file"
+                    name="videoFile"
+                    onChange={handleFileChange}
+                    accept="video/*"
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
-                  {errors.videoUrl && (
+                  {formData.videoFile ? (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Đã chọn: {formData.videoFile.name}
+                    </p>
+                  ) : formData.videoUrl ? (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Video hiện tại: {formData.videoUrl}
+                    </p>
+                  ) : null}
+                  {errors.videoFile && (
                     <p className="text-xs text-red-500 mt-1">
-                      {errors.videoUrl}
+                      {errors.videoFile}
                     </p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    URL ảnh
+                    Tải lên ảnh đại diện
                   </label>
                   <input
-                    type="text"
-                    name="imageUrl"
-                    value={formData.imageUrl}
-                    onChange={handleInputChange}
-                    maxLength={500}
-                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                    type="file"
+                    name="imageFile"
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
-                  {errors.imageUrl && (
+                  {formData.imageFile ? (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Đã chọn: {formData.imageFile.name}
+                    </p>
+                  ) : formData.imageUrl ? (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Ảnh hiện tại: {formData.imageUrl}
+                    </p>
+                  ) : null}
+                  {errors.imageFile && (
                     <p className="text-xs text-red-500 mt-1">
-                      {errors.imageUrl}
+                      {errors.imageFile}
                     </p>
                   )}
                 </div>
