@@ -32,7 +32,7 @@ const navigationItems = [
     icon: Layers,
   },
   {
-    label: "Scenario",
+    label: "Bài tập tình huống",
     to: "/admin/scenarios",
     icon: Settings,
   },

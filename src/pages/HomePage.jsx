@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Grid3x3, Layers, FileText, Loader2 } from "lucide-react";
+import { RevenueChart } from "@/components/RevenueChart";
 import axiosCustom from "@/config/axiosCustom";
 
 export default function HomePage() {
@@ -118,6 +114,11 @@ export default function HomePage() {
             </Card>
           );
         })}
+      </div>
+
+      {/* Revenue Chart */}
+      <div className="mb-8">
+        <RevenueChart />
       </div>
     </div>
   );
