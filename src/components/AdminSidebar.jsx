@@ -7,6 +7,7 @@ import {
   Grid3x3,
   Settings,
   LogOut,
+  Activity
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -35,6 +36,11 @@ const navigationItems = [
     label: "Bài tập tình huống",
     to: "/admin/scenarios",
     icon: Settings,
+  },
+  {
+    label: "Khóa học thực hành",
+    to: "/admin/practical-courses",
+    icon: Activity,
   },
 ];
 

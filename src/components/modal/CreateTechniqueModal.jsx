@@ -1,5 +1,30 @@
 import React, { useState, useEffect } from "react";
 import axiosCustom from "@/config/axiosCustom";
+import {
+  Heart,
+  Flame,
+  Droplet,
+  Brain,
+  Bone,
+  Biohazard,
+  Sun,
+  Activity,
+  BeanOff,
+  ThermometerSnowflake,
+} from "lucide-react";
+
+const ICON_OPTIONS = [
+  { name: "Heart", icon: Heart, label: "Trái tim" },
+  { name: "Flame", icon: Flame, label: "Lửa" },
+  { name: "Droplet", icon: Droplet, label: "Giọt" },
+  { name: "Brain", icon: Brain, label: "Não" },
+  { name: "Bone", icon: Bone, label: "Xương" },
+  { name: "Biohazard", icon: Biohazard, label: "Sinh học Nguy hiểm" },
+  { name: "Sun", icon: Sun, label: "Mặt trời" },
+  { name: "Activity", icon: Activity, label: "Hoạt động" },
+  { name: "BeanOff", icon: BeanOff, label: "Tắt" },
+  { name: "ThermometerSnowflake", icon: ThermometerSnowflake, label: "Lạnh" },
+];
 
 /**
  * Component Modal để tạo kỹ thuật sơ cứu mới.
@@ -212,7 +237,7 @@ export function CreateTechniqueModal({ isOpen, onClose, onSubmit }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
       <div className="bg-white w-full max-w-2xl my-8 rounded-lg shadow-xl border">
         <div className="flex flex-row items-center justify-between p-6 pb-4 border-b">
           <div>
@@ -380,21 +405,35 @@ export function CreateTechniqueModal({ isOpen, onClose, onSubmit }) {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Icon
+                  <label className="block text-sm font-medium text-foreground mb-3">
+                    Biểu tượng Icon
                   </label>
-                  <input
-                    type="text"
-                    name="icon"
-                    value={formData.icon}
-                    onChange={handleInputChange}
-                    maxLength={100}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="heart, activity, etc."
-                  />
-                  {errors.icon && (
-                    <p className="text-xs text-red-500 mt-1">{errors.icon}</p>
-                  )}
+                  <div className="grid grid-cols-3 gap-3">
+                    {ICON_OPTIONS.map((option) => {
+                      const IconComponent = option.icon;
+                      return (
+                        <button
+                          key={option.name}
+                          onClick={() =>
+                            handleInputChange({
+                              target: { name: "icon", value: option.name },
+                            })
+                          }
+                          className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                            formData.icon === option.name
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-300 hover:border-blue-300"
+                          }`}
+                          type="button"
+                        >
+                          <IconComponent className="w-6 h-6" />
+                          {/* <span className="text-xs text-center text-gray-700 font-medium">
+                            {option.label}
+                          </span> */}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               {/* --- Thay đổi input video --- */}

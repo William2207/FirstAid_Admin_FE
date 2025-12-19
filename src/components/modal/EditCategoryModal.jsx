@@ -1,5 +1,30 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import {
+  Heart,
+  Flame,
+  Droplet,
+  Brain,
+  Bone,
+  Biohazard,
+  Sun,
+  Activity,
+  BeanOff,
+  ThermometerSnowflake,
+} from "lucide-react";
+
+const ICON_OPTIONS = [
+  { name: "Heart", icon: Heart, label: "Trái tim" },
+  { name: "Flame", icon: Flame, label: "Lửa" },
+  { name: "Droplet", icon: Droplet, label: "Giọt" },
+  { name: "Brain", icon: Brain, label: "Não" },
+  { name: "Bone", icon: Bone, label: "Xương" },
+  { name: "Biohazard", icon: Biohazard, label: "Sinh học Nguy hiểm" },
+  { name: "Sun", icon: Sun, label: "Mặt trời" },
+  { name: "Activity", icon: Activity, label: "Hoạt động" },
+  { name: "BeanOff", icon: BeanOff, label: "Tắt" },
+  { name: "ThermometerSnowflake", icon: ThermometerSnowflake, label: "Lạnh" },
+];
 
 // Mảng các tùy chọn màu sắc
 const colorOptions = [
@@ -21,15 +46,15 @@ const Modal = ({ open, onClose, children }) => {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 relative max-w-md w-full">
+      <div className="bg-white rounded-lg shadow-xl relative max-w-md w-full max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-2xl leading-none"
+          className="sticky top-0 right-0 float-right text-gray-500 hover:text-gray-800 text-2xl leading-none p-6 pb-2"
           aria-label="Đóng"
         >
           &times;
         </button>
-        {children}
+        <div className="p-6 pt-0">{children}</div>
       </div>
     </div>
   );
@@ -205,29 +230,35 @@ export function EditCategoryModal({ category, onSubmit }) {
 
           {/* Icon */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Icon
+            <label className="block text-sm font-medium text-foreground mb-3">
+              Biểu tượng Icon
             </label>
-            <input
-              type="text"
-              placeholder="VD: heart, bandage, droplet..."
-              value={formData.icon}
-              onChange={(e) => handleChange("icon", e.target.value)}
-              className={`w-full p-2 border rounded ${
-                errors.icon ? "border-red-500" : "border-gray-300"
-              }`}
-              maxLength={50}
-            />
-            {errors.icon && (
-              <p className="text-xs text-red-600 mt-1">{errors.icon}</p>
-            )}
-            <p className="text-xs text-gray-500 mt-1">
-              {formData.icon.length}/50
-            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {ICON_OPTIONS.map((option) => {
+                const IconComponent = option.icon;
+                return (
+                  <button
+                    key={option.name}
+                    onClick={() => handleChange("icon", option.name)}
+                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                      formData.icon === option.name
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-300 hover:border-blue-300"
+                    }`}
+                    type="button"
+                  >
+                    <IconComponent className="w-6 h-6" />
+                    {/* <span className="text-xs text-center text-gray-700 font-medium">
+                      {option.label}
+                    </span> */}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Màu sắc */}
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Chọn màu sắc
             </label>
@@ -249,7 +280,7 @@ export function EditCategoryModal({ category, onSubmit }) {
                 </button>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* Nút hành động */}
           <div className="flex gap-2 justify-end pt-4">

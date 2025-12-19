@@ -1,17 +1,42 @@
 import { useState } from "react";
-import PropTypes from "prop-types"; // Thêm thư viện prop-types để kiểm tra kiểu dữ liệu
-import { Button } from "@/components/ui/button"; // Điều chỉnh đường dẫn nếu cần
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Điều chỉnh đường dẫn nếu cần
-import { Input } from "@/components/ui/input"; // Điều chỉnh đường dẫn nếu cần
-import { Textarea } from "@/components/ui/textarea"; // Điều chỉnh đường dẫn nếu cần
+import PropTypes from "prop-types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { X, Plus, Trash2 } from "lucide-react";
+import {
+  Heart,
+  Flame,
+  Droplet,
+  Brain,
+  Bone,
+  Biohazard,
+  Sun,
+  Activity,
+  BeanOff,
+  ThermometerSnowflake,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Điều chỉnh đường dẫn nếu cần
+} from "@/components/ui/select";
+
+const ICON_OPTIONS = [
+  { name: "Heart", icon: Heart, label: "Trái tim" },
+  { name: "Flame", icon: Flame, label: "Lửa" },
+  { name: "Droplet", icon: Droplet, label: "Giọt" },
+  { name: "Brain", icon: Brain, label: "Não" },
+  { name: "Bone", icon: Bone, label: "Xương" },
+  { name: "Biohazard", icon: Biohazard, label: "Sinh học Nguy hiểm" },
+  { name: "Sun", icon: Sun, label: "Mặt trời" },
+  { name: "Activity", icon: Activity, label: "Hoạt động" },
+  { name: "BeanOff", icon: BeanOff, label: "Tắt" },
+  { name: "ThermometerSnowflake", icon: ThermometerSnowflake, label: "Lạnh" },
+];
 
 export function CreateScenarioModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
@@ -106,16 +131,40 @@ export function CreateScenarioModal({ isOpen, onClose, onSubmit }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-background border-b border-border p-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-foreground">Tạo Scenario</h2>
-          <button onClick={onClose}>
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+      <div className="bg-white w-full max-w-4xl my-8 rounded-lg shadow-xl border">
+        <div className="flex flex-row items-center justify-between p-6 pb-4 border-b sticky top-0 bg-white">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Tạo Scenario
+            </h2>
+            <p className="text-sm text-gray-500">
+              Thêm một scenario mới vào hệ thống
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-600 transition-colors"
+            aria-label="Đóng"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
           {/* Thông tin cơ bản */}
           <Card>
             <CardHeader>
@@ -268,17 +317,33 @@ export function CreateScenarioModal({ isOpen, onClose, onSubmit }) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Icon
+                <label className="block text-sm font-medium text-foreground mb-3">
+                  Biểu tượng Icon
                 </label>
-                <Input
-                  placeholder="heart, shield, v.v..."
-                  value={formData.icon}
-                  onChange={(e) =>
-                    setFormData({ ...formData, icon: e.target.value })
-                  }
-                  className="bg-muted border-border"
-                />
+                <div className="grid grid-cols-3 gap-3">
+                  {ICON_OPTIONS.map((option) => {
+                    const IconComponent = option.icon;
+                    return (
+                      <button
+                        key={option.name}
+                        onClick={() =>
+                          setFormData({ ...formData, icon: option.name })
+                        }
+                        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                          formData.icon === option.name
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-border hover:border-blue-300"
+                        }`}
+                        type="button"
+                      >
+                        <IconComponent className="w-6 h-6" />
+                        {/* <span className="text-xs text-center text-foreground font-medium">
+                          {option.label}
+                        </span> */}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -846,8 +911,9 @@ export function CreateScenarioModal({ isOpen, onClose, onSubmit }) {
 
           {errors.step && <p className="text-red-500 text-sm">{errors.step}</p>}
 
-          <div className="flex justify-end gap-3">
-            <Button onClick={onClose} variant="outline">
+          {/* Nút hành động */}
+          <div className="flex gap-3 justify-end border-t pt-6 mt-6">
+            <Button type="button" variant="outline" onClick={onClose}>
               Hủy
             </Button>
             <Button

@@ -12,6 +12,7 @@ import { QuizzesManagementTable } from "./components/QuizzesManagementTable";
 import { CategoriesManagementTable } from "./components/CategoriesManagementTable";
 import LoginPage from "./pages/LoginPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
+import { PracticalCourseManagementTable } from "./components/PracticalCourseManagementTable";
 function App() {
   return (
     <AuthProvider>
@@ -34,6 +35,7 @@ function App() {
             <Route path="quizzes" element={<QuizzesManagementTable />} />
             <Route path="categories" element={<CategoriesManagementTable />} />
             <Route path="scenarios" element={<ScenariosManagementTable />} />
+            <Route path="practical-courses" element={<PracticalCourseManagementTable />} />
           </Route>
 
           {/* Login */}

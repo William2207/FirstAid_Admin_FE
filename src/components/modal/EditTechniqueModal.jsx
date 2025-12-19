@@ -8,7 +8,33 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { X, Trash2 } from "lucide-react";
+import {
+  X,
+  Trash2,
+  Heart,
+  Flame,
+  Droplet,
+  Brain,
+  Bone,
+  Biohazard,
+  Sun,
+  Activity,
+  BeanOff,
+  ThermometerSnowflake,
+} from "lucide-react";
+
+const ICON_OPTIONS = [
+  { name: "Heart", icon: Heart, label: "Trái tim" },
+  { name: "Flame", icon: Flame, label: "Lửa" },
+  { name: "Droplet", icon: Droplet, label: "Giọt" },
+  { name: "Brain", icon: Brain, label: "Não" },
+  { name: "Bone", icon: Bone, label: "Xương" },
+  { name: "Biohazard", icon: Biohazard, label: "Sinh học Nguy hiểm" },
+  { name: "Sun", icon: Sun, label: "Mặt trời" },
+  { name: "Activity", icon: Activity, label: "Hoạt động" },
+  { name: "BeanOff", icon: BeanOff, label: "Tắt" },
+  { name: "ThermometerSnowflake", icon: ThermometerSnowflake, label: "Lạnh" },
+];
 
 export function EditTechniqueModal({
   isOpen,
@@ -380,20 +406,35 @@ export function EditTechniqueModal({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Icon
+                    <label className="block text-sm font-medium text-foreground mb-3">
+                      Biểu tượng Icon
                     </label>
-                    <input
-                      type="text"
-                      name="icon"
-                      value={formData.icon}
-                      onChange={handleInputChange}
-                      maxLength={100}
-                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                    />
-                    {errors.icon && (
-                      <p className="text-xs text-red-500 mt-1">{errors.icon}</p>
-                    )}
+                    <div className="grid grid-cols-3 gap-3">
+                      {ICON_OPTIONS.map((option) => {
+                        const IconComponent = option.icon;
+                        return (
+                          <button
+                            key={option.name}
+                            onClick={() =>
+                              handleInputChange({
+                                target: { name: "icon", value: option.name },
+                              })
+                            }
+                            className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                              formData.icon === option.name
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-border hover:border-blue-300"
+                            }`}
+                            type="button"
+                          >
+                            <IconComponent className="w-6 h-6" />
+                            {/* <span className="text-xs text-center text-foreground font-medium">
+                              {option.label}
+                            </span> */}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
