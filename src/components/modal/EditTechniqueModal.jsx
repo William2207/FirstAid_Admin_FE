@@ -580,7 +580,7 @@ export function EditTechniqueModal({
                                 />
                               </div>
 
-                              <div>
+                              {/* <div>
                                 <label className="block text-sm font-medium text-foreground mb-2">
                                   URL ảnh
                                 </label>
@@ -597,7 +597,7 @@ export function EditTechniqueModal({
                                   maxLength={500}
                                   className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                                 />
-                              </div>
+                              </div> */}
                             </div>
 
                             <div className="flex gap-2">

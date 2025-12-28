@@ -19,6 +19,7 @@ export function QuizzesManagementTable() {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(""); // State tìm kiếm theo technique name
 
   // --- STATE PHÂN TRANG ---
   const [pagination, setPagination] = useState({
@@ -48,12 +49,13 @@ export function QuizzesManagementTable() {
       const response = await axiosCustom.get(
         `/quiz?page=${page}&pageSize=${size}`
       );
-      
-      const { data, currentPage, totalPages, totalItems, pageSize } = response.data;
+
+      const { data, currentPage, totalPages, totalItems, pageSize } =
+        response.data;
 
       console.log("Fetched quizzes:", response.data);
       setQuizzes(data);
-      
+
       // Cập nhật state phân trang từ response
       setPagination({
         currentPage: currentPage,
@@ -137,14 +139,17 @@ export function QuizzesManagementTable() {
     try {
       setDeleteConfirm({ ...deleteConfirm, isDeleting: true });
       await axiosCustom.delete(`/quiz/${id}`);
-      
+
       toast.success("Xóa câu hỏi thành công!");
       setDeleteConfirm({ isOpen: false, questionId: null, isDeleting: false });
-      
+
       // Logic xử lý khi xóa item cuối cùng của trang
       if (quizzes.length === 1 && pagination.currentPage > 1) {
         // Nếu trang hiện tại chỉ còn 1 item và xóa nó -> lùi về trang trước
-        setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }));
+        setPagination((prev) => ({
+          ...prev,
+          currentPage: prev.currentPage - 1,
+        }));
       } else {
         // Ngược lại, reload trang hiện tại
         fetchQuizzes(pagination.currentPage, pagination.pageSize);
@@ -192,112 +197,139 @@ export function QuizzesManagementTable() {
         </Button>
       </div>
 
-      {/* Danh sách câu hỏi */}
-      {Object.entries(groupedQuizzes).map(([techniqueId, group]) => {
-        if (group.questions.length === 0) return null;
+      {/* Search Input */}
+      <div className="mb-4 flex gap-2">
+        <input
+          type="text"
+          placeholder="Tìm kiếm theo tên kỹ thuật..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 px-3 py-2 border border-border rounded-md bg-white text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
 
-        return (
-          <Card key={techniqueId} className="mb-4">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>{group.techniqueName}</CardTitle>
-                  <CardDescription>
-                    Hiển thị {group.questions.length} câu hỏi trong trang này
-                  </CardDescription>
+      {/* Danh sách câu hỏi */}
+      {Object.entries(groupedQuizzes)
+        .filter(([_, group]) =>
+          group.techniqueName.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .map(([techniqueId, group]) => {
+          if (group.questions.length === 0) return null;
+
+          return (
+            <Card key={techniqueId} className="mb-4">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{group.techniqueName}</CardTitle>
+                    <CardDescription>
+                      Hiển thị {group.questions.length} câu hỏi trong trang này
+                    </CardDescription>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">
-                        Câu Hỏi
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">
-                        Độ Khó
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">
-                        Số Tùy Chọn
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">
-                        Hành Động
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.questions.map((question) => (
-                      <tr
-                        key={question.id}
-                        className="border-b border-border hover:bg-muted/50 transition-colors"
-                      >
-                        <td className="py-3 px-4 text-foreground font-medium max-w-xs truncate">
-                          {question.questionText}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              question.difficulty === "Easy"
-                                ? "bg-green-50 text-green-700"
-                                : question.difficulty === "Medium"
-                                ? "bg-yellow-50 text-yellow-700"
-                                : "bg-red-50 text-red-700"
-                            }`}
-                          >
-                            {question.difficulty === "Easy"
-                              ? "Dễ"
-                              : question.difficulty === "Medium"
-                              ? "Trung bình"
-                              : "Khó"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-foreground/70">
-                          {question.answerOptions.length}
-                        </td>
-                        <td className="py-3 px-4 flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1 bg-transparent"
-                            onClick={() => handleEditClick(question)}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                            Sửa
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
-                            onClick={() =>
-                              setDeleteConfirm({
-                                isOpen: true,
-                                questionId: question.id,
-                                isDeleting: false,
-                              })
-                            }
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Xóa
-                          </Button>
-                        </td>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 px-4 font-semibold text-foreground">
+                          Câu Hỏi
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-foreground">
+                          Độ Khó
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-foreground">
+                          Số Tùy Chọn
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-foreground">
+                          Hành Động
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {group.questions.map((question) => (
+                        <tr
+                          key={question.id}
+                          className="border-b border-border hover:bg-muted/50 transition-colors"
+                        >
+                          <td className="py-3 px-4 text-foreground font-medium max-w-xs truncate">
+                            {question.questionText}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                question.difficulty === "Easy"
+                                  ? "bg-green-50 text-green-700"
+                                  : question.difficulty === "Medium"
+                                  ? "bg-yellow-50 text-yellow-700"
+                                  : "bg-red-50 text-red-700"
+                              }`}
+                            >
+                              {question.difficulty === "Easy"
+                                ? "Dễ"
+                                : question.difficulty === "Medium"
+                                ? "Trung bình"
+                                : "Khó"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-foreground/70">
+                            {question.answerOptions.length}
+                          </td>
+                          <td className="py-3 px-4 flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 bg-transparent"
+                              onClick={() => handleEditClick(question)}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                              Sửa
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
+                              onClick={() =>
+                                setDeleteConfirm({
+                                  isOpen: true,
+                                  questionId: question.id,
+                                  isDeleting: false,
+                                })
+                              }
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Xóa
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+
+      {/* Thông báo khi không có kết quả tìm kiếm */}
+      {searchQuery &&
+        Object.entries(groupedQuizzes).filter(([_, group]) =>
+          group.techniqueName.toLowerCase().includes(searchQuery.toLowerCase())
+        ).length === 0 && (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              Không tìm thấy kỹ thuật nào phù hợp.
             </CardContent>
           </Card>
-        );
-      })}
+        )}
 
       {/* --- PHÂN TRANG (PAGINATION UI) --- */}
       {pagination.totalPages > 0 && (
         <div className="flex items-center justify-end space-x-2 py-4">
           <div className="flex-1 text-sm text-muted-foreground">
-            Trang {pagination.currentPage} / {pagination.totalPages} 
-            ({pagination.totalItems} kết quả)
+            Trang {pagination.currentPage} / {pagination.totalPages}(
+            {pagination.totalItems} kết quả)
           </div>
           <div className="space-x-2">
             <Button
@@ -309,38 +341,52 @@ export function QuizzesManagementTable() {
               <ChevronLeft className="h-4 w-4 mr-2" />
               Trước
             </Button>
-            
+
             {/* Hiển thị các số trang (đơn giản) */}
             <div className="inline-flex gap-1 mx-2">
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                  // Chỉ hiện trang đầu, cuối, và xung quanh trang hiện tại (optional logic)
-                  .filter(p => p === 1 || p === pagination.totalPages || Math.abs(p - pagination.currentPage) <= 1)
-                  .map((page, index, array) => {
-                      // Logic thêm dấu "..." nếu danh sách bị ngắt quãng
-                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
-                      
-                      return (
-                        <div key={page} className="flex items-center">
-                           {showEllipsis && <span className="mx-1">...</span>}
-                           <Button
-                              variant={pagination.currentPage === page ? "default" : "outline"}
-                              size="sm"
-                              className={`w-8 h-8 p-0 ${pagination.currentPage === page ? "pointer-events-none" : ""}`}
-                              onClick={() => handlePageChange(page)}
-                           >
-                              {page}
-                           </Button>
-                        </div>
-                      );
-                  })
-                }
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                // Chỉ hiện trang đầu, cuối, và xung quanh trang hiện tại (optional logic)
+                .filter(
+                  (p) =>
+                    p === 1 ||
+                    p === pagination.totalPages ||
+                    Math.abs(p - pagination.currentPage) <= 1
+                )
+                .map((page, index, array) => {
+                  // Logic thêm dấu "..." nếu danh sách bị ngắt quãng
+                  const showEllipsis = index > 0 && page - array[index - 1] > 1;
+
+                  return (
+                    <div key={page} className="flex items-center">
+                      {showEllipsis && <span className="mx-1">...</span>}
+                      <Button
+                        variant={
+                          pagination.currentPage === page
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        className={`w-8 h-8 p-0 ${
+                          pagination.currentPage === page
+                            ? "pointer-events-none"
+                            : ""
+                        }`}
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </Button>
+                    </div>
+                  );
+                })}
             </div>
 
             <Button
               variant="outline"
               size="sm"
               onClick={() => handlePageChange(pagination.currentPage + 1)}
-              disabled={pagination.currentPage === pagination.totalPages || loading}
+              disabled={
+                pagination.currentPage === pagination.totalPages || loading
+              }
             >
               Sau
               <ChevronRight className="h-4 w-4 ml-2" />

@@ -18,6 +18,7 @@ export function ScenariosManagementTable() {
   // --- STATE DỮ LIỆU ---
   const [scenarios, setScenarios] = useState([]);
   const [loading, setLoading] = useState(true); // Thêm trạng thái loading
+  const [searchQuery, setSearchQuery] = useState(""); // State tìm kiếm
 
   // --- STATE PHÂN TRANG ---
   const [pagination, setPagination] = useState({
@@ -41,11 +42,14 @@ export function ScenariosManagementTable() {
     try {
       setLoading(true);
       // Gọi API kèm tham số phân trang
-      const response = await axiosCustom.get(`/scenarios?page=${page}&pageSize=${size}`);
-      
+      const response = await axiosCustom.get(
+        `/scenarios?page=${page}&pageSize=${size}`
+      );
+
       // Destructure dữ liệu từ server (Giả định cấu trúc trả về chuẩn như các trang trước)
-      const { data, currentPage, totalPages, totalItems, pageSize } = response.data;
-      
+      const { data, currentPage, totalPages, totalItems, pageSize } =
+        response.data;
+
       setScenarios(data);
       setPagination({
         currentPage: currentPage,
@@ -77,10 +81,10 @@ export function ScenariosManagementTable() {
   const handleCreateScenario = async (data) => {
     try {
       await axiosCustom.post("/scenarios", data);
-      
+
       // Refresh lại trang hiện tại (hoặc trang 1) sau khi tạo
       fetchScenarios(pagination.currentPage, pagination.pageSize);
-      
+
       setIsCreateOpen(false);
       toast.success("Tạo scenario thành công!");
     } catch (error) {
@@ -92,14 +96,11 @@ export function ScenariosManagementTable() {
   // Hàm chỉnh sửa scenario
   const handleEditScenario = async (data) => {
     try {
-      await axiosCustom.put(
-        `/scenarios/${editingScenario.id}`,
-        data
-      );
-      
+      await axiosCustom.put(`/scenarios/${editingScenario.id}`, data);
+
       // Refresh lại dữ liệu trang hiện tại
       fetchScenarios(pagination.currentPage, pagination.pageSize);
-      
+
       setEditingScenario(null);
       toast.success("Cập nhật scenario thành công!");
     } catch (error) {
@@ -113,17 +114,19 @@ export function ScenariosManagementTable() {
     try {
       setDeleteConfirm({ ...deleteConfirm, isDeleting: true });
       await axiosCustom.delete(`/scenarios/${id}`);
-      
+
       toast.success("Xóa scenario thành công!");
       setDeleteConfirm({ isOpen: false, scenarioId: null, isDeleting: false });
 
       // Logic xử lý khi xóa item cuối cùng của trang
       if (scenarios.length === 1 && pagination.currentPage > 1) {
-         setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }));
+        setPagination((prev) => ({
+          ...prev,
+          currentPage: prev.currentPage - 1,
+        }));
       } else {
-         fetchScenarios(pagination.currentPage, pagination.pageSize);
+        fetchScenarios(pagination.currentPage, pagination.pageSize);
       }
-
     } catch (error) {
       console.error("Error deleting scenario:", error);
       toast.error("Lỗi khi xóa scenario. Vui lòng thử lại.");
@@ -144,7 +147,9 @@ export function ScenariosManagementTable() {
       console.error("Error fetching scenario details:", error);
       // Nếu API chi tiết lỗi, fallback về dữ liệu đang có trên bảng
       setEditingScenario(scenario);
-      toast.warning("Không thể tải chi tiết đầy đủ, đang hiển thị dữ liệu cơ bản.");
+      toast.warning(
+        "Không thể tải chi tiết đầy đủ, đang hiển thị dữ liệu cơ bản."
+      );
     }
   };
 
@@ -168,121 +173,155 @@ export function ScenariosManagementTable() {
         </Button>
       </div>
 
+      {/* Thanh tìm kiếm */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Tìm kiếm scenario..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 px-3 py-2 border border-border rounded-md bg-white text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Danh sách Scenario</CardTitle>
           <CardDescription>
-             Hiển thị {scenarios.length} trên tổng số {pagination.totalItems} scenario
+            Hiển thị{" "}
+            {
+              scenarios.filter((s) =>
+                s.title.toLowerCase().includes(searchQuery.toLowerCase())
+              ).length
+            }{" "}
+            trên tổng số {pagination.totalItems} scenario
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-             <div className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</div>
+            <div className="text-center py-8 text-muted-foreground">
+              Đang tải dữ liệu...
+            </div>
           ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Tên Scenario
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Loại
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Số bước
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Độ khó
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Trạng thái
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Hành động
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {scenarios.length > 0 ? (
-                  scenarios.map((scenario) => (
-                    <tr
-                      key={scenario.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="py-3 px-4 text-foreground font-medium">
-                        {scenario.title}
-                      </td>
-                      <td className="py-3 px-4 text-foreground/70 text-sm">
-                        {scenario.category === "practice"
-                          ? "Thực hành"
-                          : "Thử thách"}
-                      </td>
-                      <td className="py-3 px-4 text-foreground/70">
-                        {scenario.stepCount}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            scenario.difficulty === "Easy" || scenario.difficulty === "Dễ"
-                              ? "bg-green-50 text-green-700"
-                              : scenario.difficulty === "Medium" || scenario.difficulty === "Trung Bình"
-                              ? "bg-yellow-50 text-yellow-700"
-                              : "bg-red-50 text-red-700"
-                          }`}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Tên Scenario
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Loại
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Số bước
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Độ khó
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Trạng thái
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Hành động
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scenarios.filter((s) =>
+                    s.title.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length > 0 ? (
+                    scenarios
+                      .filter((s) =>
+                        s.title
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())
+                      )
+                      .map((scenario) => (
+                        <tr
+                          key={scenario.id}
+                          className="border-b border-border hover:bg-muted/50 transition-colors"
                         >
-                          {scenario.difficulty}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            scenario.isPublished === true
-                              ? "bg-blue-50 text-blue-700"
-                              : "bg-gray-50 text-gray-700"
-                          }`}
-                        >
-                          {scenario.isPublished ? "Đã xuất bản" : "Nháp"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 flex gap-2">
-                        <Button
-                          onClick={() => handleOpenEditModal(scenario)}
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 bg-transparent"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                          Sửa
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
-                          onClick={() =>
-                            setDeleteConfirm({
-                              isOpen: true,
-                              scenarioId: scenario.id,
-                              isDeleting: false,
-                            })
-                          }
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Xóa
-                        </Button>
+                          <td className="py-3 px-4 text-foreground font-medium">
+                            {scenario.title}
+                          </td>
+                          <td className="py-3 px-4 text-foreground/70 text-sm">
+                            {scenario.category === "practice"
+                              ? "Thực hành"
+                              : "Thử thách"}
+                          </td>
+                          <td className="py-3 px-4 text-foreground/70">
+                            {scenario.stepCount}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                scenario.difficulty === "Easy" ||
+                                scenario.difficulty === "Dễ"
+                                  ? "bg-green-50 text-green-700"
+                                  : scenario.difficulty === "Medium" ||
+                                    scenario.difficulty === "Trung Bình"
+                                  ? "bg-yellow-50 text-yellow-700"
+                                  : "bg-red-50 text-red-700"
+                              }`}
+                            >
+                              {scenario.difficulty}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                scenario.isPublished === true
+                                  ? "bg-blue-50 text-blue-700"
+                                  : "bg-gray-50 text-gray-700"
+                              }`}
+                            >
+                              {scenario.isPublished ? "Đã xuất bản" : "Nháp"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 flex gap-2">
+                            <Button
+                              onClick={() => handleOpenEditModal(scenario)}
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 bg-transparent"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                              Sửa
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
+                              onClick={() =>
+                                setDeleteConfirm({
+                                  isOpen: true,
+                                  scenarioId: scenario.id,
+                                  isDeleting: false,
+                                })
+                              }
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Xóa
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        {searchQuery
+                          ? "Không tìm thấy scenario nào."
+                          : "Không có scenario nào."}
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Không có scenario nào.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -303,28 +342,42 @@ export function ScenariosManagementTable() {
               <ChevronLeft className="h-4 w-4 mr-2" />
               Trước
             </Button>
-            
+
             {/* Logic hiển thị số trang */}
             <div className="inline-flex gap-1 mx-2">
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                  .filter(p => p === 1 || p === pagination.totalPages || Math.abs(p - pagination.currentPage) <= 1)
-                  .map((page, index, array) => {
-                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
-                      return (
-                        <div key={page} className="flex items-center">
-                           {showEllipsis && <span className="mx-1 text-sm">...</span>}
-                           <Button
-                              variant={pagination.currentPage === page ? "default" : "outline"}
-                              size="sm"
-                              className={`w-8 h-8 p-0 ${pagination.currentPage === page ? "pointer-events-none" : ""}`}
-                              onClick={() => handlePageChange(page)}
-                           >
-                              {page}
-                           </Button>
-                        </div>
-                      );
-                  })
-                }
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                .filter(
+                  (p) =>
+                    p === 1 ||
+                    p === pagination.totalPages ||
+                    Math.abs(p - pagination.currentPage) <= 1
+                )
+                .map((page, index, array) => {
+                  const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                  return (
+                    <div key={page} className="flex items-center">
+                      {showEllipsis && (
+                        <span className="mx-1 text-sm">...</span>
+                      )}
+                      <Button
+                        variant={
+                          pagination.currentPage === page
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        className={`w-8 h-8 p-0 ${
+                          pagination.currentPage === page
+                            ? "pointer-events-none"
+                            : ""
+                        }`}
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </Button>
+                    </div>
+                  );
+                })}
             </div>
 
             <Button

@@ -10,6 +10,7 @@ export function TechniquesManagementTable() {
   // --- STATE DỮ LIỆU ---
   const [techniques, setTechniques] = useState([]);
   const [loading, setLoading] = useState(true); // State loading cho bảng
+  const [searchQuery, setSearchQuery] = useState(""); // State tìm kiếm
 
   // --- STATE PHÂN TRANG ---
   const [pagination, setPagination] = useState({
@@ -203,10 +204,10 @@ export function TechniquesManagementTable() {
   const handleUpdateTechnique = async (formData) => {
     if (!currentTechnique) return;
     setIsSubmitting(true);
-    
+
     try {
       console.log("📦 Form data nhận được:", formData);
-      
+
       const uploadPromises = [];
       const filesToUpload = {
         hasVideoFile: formData.videoFile && formData.videoFile instanceof File,
@@ -278,7 +279,7 @@ export function TechniquesManagementTable() {
             orderIndex: step.orderIndex,
             // ... các field khác của step
           };
-          
+
           if (filesToUpload.stepImageFiles.includes(idx)) {
             newStep.imageUrl = uploadedUrls[urlIndex++];
             console.log(`✅ Step ${idx} - gán imageUrl mới:`, newStep.imageUrl);
@@ -286,7 +287,7 @@ export function TechniquesManagementTable() {
             newStep.imageUrl = currentTechnique.steps[idx].imageUrl;
             console.log(`📌 Step ${idx} - giữ imageUrl cũ:`, newStep.imageUrl);
           }
-          
+
           return newStep;
         });
       }
@@ -302,7 +303,6 @@ export function TechniquesManagementTable() {
       // ✅ Tất cả xong mới show toast và đóng modal
       toast.success("Cập nhật kỹ thuật thành công!");
       handleCloseEditModal();
-      
     } catch (error) {
       console.error("❌ Lỗi:", error);
       const errorMessage =
@@ -347,6 +347,17 @@ export function TechniquesManagementTable() {
         </button>
       </div>
 
+      {/* Thanh tìm kiếm */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Tìm kiếm kỹ thuật..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+        />
+      </div>
+
       <div className="border rounded-lg shadow-sm bg-white">
         <div className="p-6 border-b">
           <h2 className="text-xl font-semibold">Danh sách kỹ thuật</h2>
@@ -380,66 +391,76 @@ export function TechniquesManagementTable() {
                   </tr>
                 </thead>
                 <tbody>
-                  {techniques.length > 0 ? (
-                    techniques.map((technique) => (
-                      <tr
-                        key={technique.id}
-                        className="border-b hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="py-3 px-4 font-medium">
-                          {technique.title}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">
-                          {technique.type?.name || "N/A"}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              technique.difficulty === "Easy" ||
-                              technique.difficulty === "Dễ"
-                                ? "bg-green-100 text-green-800"
-                                : technique.difficulty === "Medium" ||
-                                  technique.difficulty === "Trung Bình"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {technique.difficulty}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 flex gap-2">
-                          <button
-                            onClick={() => handleOpenEditModal(technique)}
-                            disabled={isLoadingDetail}
-                            className="flex items-center gap-1 px-3 py-1 border rounded-md hover:bg-gray-100 transition-colors"
-                          >
-                            {isLoadingDetail &&
-                            currentTechnique?.id === technique.id
-                              ? "..."
-                              : "Sửa"}
-                          </button>
-                          <button
-                            onClick={() =>
-                              setDeleteConfirm({
-                                isOpen: true,
-                                techniqueId: technique.id,
-                                isDeleting: false,
-                              })
-                            }
-                            className="flex items-center gap-1 px-3 py-1 border rounded-md text-red-600 hover:bg-red-50 transition-colors"
-                          >
-                            Xóa
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                  {techniques.filter((t) =>
+                    t.title.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length > 0 ? (
+                    techniques
+                      .filter((t) =>
+                        t.title
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())
+                      )
+                      .map((technique) => (
+                        <tr
+                          key={technique.id}
+                          className="border-b hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="py-3 px-4 font-medium">
+                            {technique.title}
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">
+                            {technique.type?.name || "N/A"}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                technique.difficulty === "Easy" ||
+                                technique.difficulty === "Dễ"
+                                  ? "bg-green-100 text-green-800"
+                                  : technique.difficulty === "Medium" ||
+                                    technique.difficulty === "Trung Bình"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {technique.difficulty}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 flex gap-2">
+                            <button
+                              onClick={() => handleOpenEditModal(technique)}
+                              disabled={isLoadingDetail}
+                              className="flex items-center gap-1 px-3 py-1 border rounded-md hover:bg-gray-100 transition-colors"
+                            >
+                              {isLoadingDetail &&
+                              currentTechnique?.id === technique.id
+                                ? "..."
+                                : "Sửa"}
+                            </button>
+                            <button
+                              onClick={() =>
+                                setDeleteConfirm({
+                                  isOpen: true,
+                                  techniqueId: technique.id,
+                                  isDeleting: false,
+                                })
+                              }
+                              className="flex items-center gap-1 px-3 py-1 border rounded-md text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              Xóa
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                   ) : (
                     <tr>
                       <td
                         colSpan={4}
                         className="text-center py-8 text-gray-500"
                       >
-                        Không có kỹ thuật nào.
+                        {searchQuery
+                          ? "Không tìm thấy kỹ thuật nào."
+                          : "Không có kỹ thuật nào."}
                       </td>
                     </tr>
                   )}

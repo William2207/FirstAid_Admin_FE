@@ -68,7 +68,7 @@ export default function HomePage() {
       color: "bg-purple-50 text-purple-600",
     },
     {
-      title: "Scenario",
+      title: "Bài tập tình huống",
       value: dataCounts.scenarios,
       description: "Tổng số scenario",
       icon: FileText,

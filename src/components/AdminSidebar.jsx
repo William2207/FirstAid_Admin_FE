@@ -7,7 +7,7 @@ import {
   Grid3x3,
   Settings,
   LogOut,
-  Activity
+  Activity,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -59,9 +59,9 @@ export function AdminSidebar() {
   };
 
   return (
-    <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col min-h-screen">
+    <div className="fixed left-0 top-0 w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-40">
       {/* Header */}
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="p-6 border-b border-sidebar-border flex-shrink-0">
         <h1 className="text-2xl font-bold text-sidebar-primary">
           FirstAid Admin
         </h1>
@@ -69,7 +69,7 @@ export function AdminSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 overflow-y-auto p-4 space-y-2">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -95,7 +95,7 @@ export function AdminSidebar() {
       </nav>
 
       {/* Footer - Nút Đăng xuất */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border flex-shrink-0">
         <button
           onClick={handleLogout}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-sidebar-primary text-sidebar-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"

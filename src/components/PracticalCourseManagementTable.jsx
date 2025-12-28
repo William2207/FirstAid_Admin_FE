@@ -18,6 +18,7 @@ export function PracticalCourseManagementTable() {
   // --- STATE DỮ LIỆU ---
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState(""); // State tìm kiếm
 
   // --- STATE PHÂN TRANG ---
   const [pagination, setPagination] = useState({
@@ -163,12 +164,28 @@ export function PracticalCourseManagementTable() {
         <CreatePracticalCourseModal onSubmit={handleCreateCourse} />
       </div>
 
+      {/* Thanh tìm kiếm */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Tìm kiếm khóa học..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 px-3 py-2 border border-border rounded-md bg-white text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Danh sách Khóa học</CardTitle>
           <CardDescription>
-            Hiển thị {courses.length} trên tổng số {pagination.totalItems} khóa
-            học
+            Hiển thị{" "}
+            {
+              courses.filter((c) =>
+                c.title.toLowerCase().includes(searchQuery.toLowerCase())
+              ).length
+            }{" "}
+            trên tổng số {pagination.totalItems} khóa học
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -203,70 +220,80 @@ export function PracticalCourseManagementTable() {
                   </tr>
                 </thead>
                 <tbody>
-                  {courses.length > 0 ? (
-                    courses.map((course) => (
-                      <tr
-                        key={course.id}
-                        className="border-b border-border hover:bg-muted/50 transition-colors"
-                      >
-                        <td className="py-3 px-4 text-foreground font-medium">
-                          <div className="max-w-xs truncate">
-                            {course.title}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-foreground/70">
-                          {course.location}
-                        </td>
-                        <td className="py-3 px-4 text-foreground/70">
-                          {formatPrice(course.price)}
-                        </td>
-                        <td className="py-3 px-4 text-foreground/70">
-                          {formatDate(course.startDate)}
-                        </td>
-                        <td className="py-3 px-4 text-foreground/70">
-                          {course.enrolledStudents}/{course.maxStudents}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              course.isPublished
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {course.isPublished ? "Đã công bố" : "Bản nháp"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 flex gap-2">
-                          <EditPracticalCourseModal
-                            course={course}
-                            onSubmit={handleUpdateCourse}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
-                            onClick={() =>
-                              setDeleteConfirm({
-                                isOpen: true,
-                                courseId: course.id,
-                                isDeleting: false,
-                              })
-                            }
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Xóa
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
+                  {courses.filter((c) =>
+                    c.title.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length > 0 ? (
+                    courses
+                      .filter((c) =>
+                        c.title
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())
+                      )
+                      .map((course) => (
+                        <tr
+                          key={course.id}
+                          className="border-b border-border hover:bg-muted/50 transition-colors"
+                        >
+                          <td className="py-3 px-4 text-foreground font-medium">
+                            <div className="max-w-xs truncate">
+                              {course.title}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-foreground/70">
+                            {course.location}
+                          </td>
+                          <td className="py-3 px-4 text-foreground/70">
+                            {formatPrice(course.price)}
+                          </td>
+                          <td className="py-3 px-4 text-foreground/70">
+                            {formatDate(course.startDate)}
+                          </td>
+                          <td className="py-3 px-4 text-foreground/70">
+                            {course.enrolledStudents}/{course.maxStudents}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                course.isPublished
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {course.isPublished ? "Đã công bố" : "Bản nháp"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 flex gap-2">
+                            <EditPracticalCourseModal
+                              course={course}
+                              onSubmit={handleUpdateCourse}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
+                              onClick={() =>
+                                setDeleteConfirm({
+                                  isOpen: true,
+                                  courseId: course.id,
+                                  isDeleting: false,
+                                })
+                              }
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Xóa
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
                   ) : (
                     <tr>
                       <td
                         colSpan={7}
                         className="text-center py-8 text-muted-foreground"
                       >
-                        Không có khóa học nào.
+                        {searchQuery
+                          ? "Không tìm thấy khóa học nào."
+                          : "Không có khóa học nào."}
                       </td>
                     </tr>
                   )}

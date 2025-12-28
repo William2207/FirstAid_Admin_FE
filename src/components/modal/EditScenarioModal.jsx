@@ -750,7 +750,7 @@ export function EditScenarioModal({ isOpen, onClose, scenario, onSubmit }) {
                     {formData.scenarioSteps?.map((step, index) => (
                       <div
                         key={step.id}
-                        className="flex justify-between items-center p-4 bg-muted rounded-lg border border-border hover:border-primary/50 transition-colors"
+                        className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition-colors"
                       >
                         <div>
                           <p className="font-medium text-foreground">
@@ -768,15 +768,15 @@ export function EditScenarioModal({ isOpen, onClose, scenario, onSubmit }) {
                           <Button
                             onClick={() => setEditingStep(step)}
                             size="sm"
-                            variant="outline"
+                            className="bg-blue-600 text-white hover:bg-blue-700"
                           >
                             Sửa
                           </Button>
+
                           <Button
                             onClick={() => handleDeleteStep(step.id)}
                             size="sm"
-                            variant="outline"
-                            className="text-red-600"
+                            className="bg-red-600 text-white hover:bg-red-700"
                           >
                             Xóa
                           </Button>

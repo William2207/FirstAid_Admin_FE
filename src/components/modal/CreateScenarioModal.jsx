@@ -809,41 +809,43 @@ export function CreateScenarioModal({ isOpen, onClose, onSubmit }) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        URL ảnh
-                      </label>
-                      <Input
-                        placeholder="https://example.com/image.jpg"
-                        value={editingStep.imageUrl}
-                        onChange={(e) =>
-                          setEditingStep({
-                            ...editingStep,
-                            imageUrl: e.target.value,
-                          })
-                        }
-                        className="bg-muted border-border"
-                      />
-                    </div>
+                  {/*
+<div className="grid grid-cols-2 gap-4">
+  <div>
+    <label className="block text-sm font-medium text-foreground mb-2">
+      URL ảnh
+    </label>
+    <Input
+      placeholder="https://example.com/image.jpg"
+      value={editingStep.imageUrl}
+      onChange={(e) =>
+        setEditingStep({
+          ...editingStep,
+          imageUrl: e.target.value,
+        })
+      }
+      className="bg-muted border-border"
+    />
+  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        URL video
-                      </label>
-                      <Input
-                        placeholder="https://example.com/video.mp4"
-                        value={editingStep.videoUrl}
-                        onChange={(e) =>
-                          setEditingStep({
-                            ...editingStep,
-                            videoUrl: e.target.value,
-                          })
-                        }
-                        className="bg-muted border-border"
-                      />
-                    </div>
-                  </div>
+  <div>
+    <label className="block text-sm font-medium text-foreground mb-2">
+      URL video
+    </label>
+    <Input
+      placeholder="https://example.com/video.mp4"
+      value={editingStep.videoUrl}
+      onChange={(e) =>
+        setEditingStep({
+          ...editingStep,
+          videoUrl: e.target.value,
+        })
+      }
+      className="bg-muted border-border"
+    />
+  </div>
+</div>
+*/}
 
                   <div className="flex gap-2">
                     <Button

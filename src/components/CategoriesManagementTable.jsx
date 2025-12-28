@@ -18,6 +18,7 @@ export function CategoriesManagementTable() {
   // --- STATE DỮ LIỆU ---
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true); // Thêm trạng thái loading
+  const [searchQuery, setSearchQuery] = useState(""); // State tìm kiếm
 
   // --- STATE PHÂN TRANG ---
   const [pagination, setPagination] = useState({
@@ -42,10 +43,11 @@ export function CategoriesManagementTable() {
       const response = await axiosCustom.get(
         `/techniquetypes?page=${page}&pageSize=${size}`
       );
-      
+
       // Giả định server trả về cấu trúc chuẩn phân trang
       // Nếu server trả về khác, bạn cần map lại các biến này
-      const { data, currentPage, totalPages, totalItems, pageSize } = response.data;
+      const { data, currentPage, totalPages, totalItems, pageSize } =
+        response.data;
 
       setCategories(data);
       setPagination({
@@ -86,7 +88,10 @@ export function CategoriesManagementTable() {
       // Logic xử lý khi xóa item cuối cùng của trang
       if (categories.length === 1 && pagination.currentPage > 1) {
         // Lùi về trang trước đó
-        setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }));
+        setPagination((prev) => ({
+          ...prev,
+          currentPage: prev.currentPage - 1,
+        }));
       } else {
         // Tải lại trang hiện tại
         fetchCategories(pagination.currentPage, pagination.pageSize);
@@ -111,7 +116,7 @@ export function CategoriesManagementTable() {
   const handleCreateCategory = async (data) => {
     try {
       await axiosCustom.post("/techniquetypes", data);
-      
+
       // Sau khi tạo thành công, reload lại dữ liệu để cập nhật danh sách và tổng số item
       fetchCategories(pagination.currentPage, pagination.pageSize);
       toast.success("Tạo danh mục thành công");
@@ -154,86 +159,114 @@ export function CategoriesManagementTable() {
         <CreateCategoryModal onSubmit={handleCreateCategory} />
       </div>
 
+      {/* Thanh tìm kiếm */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Tìm kiếm danh mục..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 px-3 py-2 border border-border rounded-md bg-white text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Danh sách Danh mục</CardTitle>
           <CardDescription>
             {/* Hiển thị thông tin phân trang thay vì chỉ length mảng */}
-             Hiển thị {categories.length} trên tổng số {pagination.totalItems} danh mục
+            Hiển thị{" "}
+            {
+              categories.filter((c) =>
+                c.name.toLowerCase().includes(searchQuery.toLowerCase())
+              ).length
+            }{" "}
+            trên tổng số {pagination.totalItems} danh mục
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-             <div className="text-center py-8">Đang tải dữ liệu...</div>
+            <div className="text-center py-8">Đang tải dữ liệu...</div>
           ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Tên danh mục
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Mô tả
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Số kỹ thuật
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">
-                    Hành động
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.length > 0 ? (
-                  categories.map((category) => (
-                    <tr
-                      key={category.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="py-3 px-4 text-foreground font-medium">
-                        {category.name}
-                      </td>
-                      <td className="py-3 px-4 text-foreground/70">
-                        {category.description}
-                      </td>
-                      <td className="py-3 px-4 text-foreground/70">
-                        {/* Kiểm tra null safe cho mảng techniques */}
-                        {category.techniques?.length || 0}
-                      </td>
-                      <td className="py-3 px-4 flex gap-2">
-                        <EditCategoryModal
-                          category={category}
-                          onSubmit={handleUpdateCategory}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
-                          onClick={() =>
-                            setDeleteConfirm({
-                              isOpen: true,
-                              categoryId: category.id,
-                              isDeleting: false,
-                            })
-                          }
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Tên danh mục
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Mô tả
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Số kỹ thuật
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">
+                      Hành động
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.filter((c) =>
+                    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length > 0 ? (
+                    categories
+                      .filter((c) =>
+                        c.name.toLowerCase().includes(searchQuery.toLowerCase())
+                      )
+                      .map((category) => (
+                        <tr
+                          key={category.id}
+                          className="border-b border-border hover:bg-muted/50 transition-colors"
                         >
-                          <Trash2 className="w-4 h-4" />
-                          Xóa
-                        </Button>
+                          <td className="py-3 px-4 text-foreground font-medium">
+                            {category.name}
+                          </td>
+                          <td className="py-3 px-4 text-foreground/70">
+                            {category.description}
+                          </td>
+                          <td className="py-3 px-4 text-foreground/70">
+                            {/* Kiểm tra null safe cho mảng techniques */}
+                            {category.techniques?.length || 0}
+                          </td>
+                          <td className="py-3 px-4 flex gap-2">
+                            <EditCategoryModal
+                              category={category}
+                              onSubmit={handleUpdateCategory}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-red-600 hover:bg-red-50 bg-transparent"
+                              onClick={() =>
+                                setDeleteConfirm({
+                                  isOpen: true,
+                                  categoryId: category.id,
+                                  isDeleting: false,
+                                })
+                              }
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Xóa
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        {searchQuery
+                          ? "Không tìm thấy danh mục nào."
+                          : "Không có danh mục nào."}
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
-                      Không có danh mục nào.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -255,34 +288,50 @@ export function CategoriesManagementTable() {
               Trước
             </Button>
 
-             {/* Logic hiển thị số trang */}
-             <div className="inline-flex gap-1 mx-2">
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                  .filter(p => p === 1 || p === pagination.totalPages || Math.abs(p - pagination.currentPage) <= 1)
-                  .map((page, index, array) => {
-                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
-                      return (
-                        <div key={page} className="flex items-center">
-                           {showEllipsis && <span className="mx-1 text-sm">...</span>}
-                           <Button
-                              variant={pagination.currentPage === page ? "default" : "outline"}
-                              size="sm"
-                              className={`w-8 h-8 p-0 ${pagination.currentPage === page ? "pointer-events-none" : ""}`}
-                              onClick={() => handlePageChange(page)}
-                           >
-                              {page}
-                           </Button>
-                        </div>
-                      );
-                  })
-                }
+            {/* Logic hiển thị số trang */}
+            <div className="inline-flex gap-1 mx-2">
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                .filter(
+                  (p) =>
+                    p === 1 ||
+                    p === pagination.totalPages ||
+                    Math.abs(p - pagination.currentPage) <= 1
+                )
+                .map((page, index, array) => {
+                  const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                  return (
+                    <div key={page} className="flex items-center">
+                      {showEllipsis && (
+                        <span className="mx-1 text-sm">...</span>
+                      )}
+                      <Button
+                        variant={
+                          pagination.currentPage === page
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        className={`w-8 h-8 p-0 ${
+                          pagination.currentPage === page
+                            ? "pointer-events-none"
+                            : ""
+                        }`}
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </Button>
+                    </div>
+                  );
+                })}
             </div>
 
             <Button
               variant="outline"
               size="sm"
               onClick={() => handlePageChange(pagination.currentPage + 1)}
-              disabled={pagination.currentPage === pagination.totalPages || loading}
+              disabled={
+                pagination.currentPage === pagination.totalPages || loading
+              }
             >
               Sau
               <ChevronRight className="h-4 w-4 ml-2" />
