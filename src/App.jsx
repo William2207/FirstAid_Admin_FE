@@ -13,6 +13,9 @@ import { CategoriesManagementTable } from "./components/CategoriesManagementTabl
 import LoginPage from "./pages/LoginPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import { PracticalCourseManagementTable } from "./components/PracticalCourseManagementTable";
+import { StaffManagementTable } from "./components/StaffManagementTable";
+import { SpecialtyManagementTable } from "./components/SpecialtyManagementTable";
+
 function App() {
   return (
     <AuthProvider>
@@ -36,6 +39,8 @@ function App() {
             <Route path="categories" element={<CategoriesManagementTable />} />
             <Route path="scenarios" element={<ScenariosManagementTable />} />
             <Route path="practical-courses" element={<PracticalCourseManagementTable />} />
+            <Route path="staff" element={<StaffManagementTable />} />
+            <Route path="specialties" element={<SpecialtyManagementTable />} />
           </Route>
 
           {/* Login */}

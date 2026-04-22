@@ -573,7 +573,7 @@ export function CreateTechniqueModal({ isOpen, onClose, onSubmit }) {
                     )}
                   </div>
                   {/* --- Thay đổi input ảnh cho từng bước --- */}
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Tải lên ảnh cho bước
                     </label>
@@ -594,7 +594,7 @@ export function CreateTechniqueModal({ isOpen, onClose, onSubmit }) {
                         {errors.imageFile}
                       </p>
                     )}
-                  </div>
+                  </div> */}
                 </div>
                 <button
                   type="button"
