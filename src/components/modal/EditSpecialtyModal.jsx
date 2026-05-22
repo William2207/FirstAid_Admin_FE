@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import axiosCustom from "@/config/axiosCustom";
+import { toast } from "sonner";
 
 const Modal = ({ open, onClose, children }) => {
   if (!open) return null;
@@ -31,8 +33,38 @@ export function EditSpecialtyModal({ specialty, onSubmit, isSubmitting }) {
     description: "",
     price: "",
     isActive: true,
+    headDoctorId: "",
+    headNurseId: "",
   });
   const [errors, setErrors] = useState({});
+  
+  const [doctorsList, setDoctorsList] = useState([]);
+  const [nursesList, setNursesList] = useState([]);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+
+  // Fetch doctors and nurses of this specialty when modal opens
+  const fetchSpecialtyStaff = async () => {
+    try {
+      setIsLoadingStaff(true);
+      const response = await axiosCustom.get("/staff/all");
+      const staff = response.data;
+      
+      const specialtyDocs = staff.filter(
+        (s) => s.role && s.role.includes("Doctor") && s.specialtyId === specialty.id
+      );
+      const specialtyNurses = staff.filter(
+        (s) => s.role && s.role.includes("Nurse") && s.specialtyId === specialty.id
+      );
+
+      setDoctorsList(specialtyDocs);
+      setNursesList(specialtyNurses);
+    } catch (error) {
+      console.error("Lỗi lấy danh sách nhân viên khoa:", error);
+      toast.error("Không thể tải danh sách bác sĩ và y tá của khoa.");
+    } finally {
+      setIsLoadingStaff(false);
+    }
+  };
 
   // Đồng bộ dữ liệu khi mở modal
   useEffect(() => {
@@ -42,8 +74,11 @@ export function EditSpecialtyModal({ specialty, onSubmit, isSubmitting }) {
         description: specialty.description || "",
         price: specialty.price?.toString() || "0",
         isActive: specialty.isActive ?? true,
+        headDoctorId: specialty.headDoctorId?.toString() || "",
+        headNurseId: specialty.headNurseId?.toString() || "",
       });
       setErrors({});
+      fetchSpecialtyStaff();
     }
   }, [open, specialty]);
 
@@ -72,6 +107,8 @@ export function EditSpecialtyModal({ specialty, onSubmit, isSubmitting }) {
       description: formData.description,
       price: parseFloat(formData.price),
       isActive: formData.isActive,
+      headDoctorId: formData.headDoctorId ? parseInt(formData.headDoctorId, 10) : null,
+      headNurseId: formData.headNurseId ? parseInt(formData.headNurseId, 10) : null,
     });
     setOpen(false);
   };
@@ -143,6 +180,46 @@ export function EditSpecialtyModal({ specialty, onSubmit, isSubmitting }) {
             {errors.price && <p className="text-xs text-red-600 mt-1">{errors.price}</p>}
           </div>
 
+          {/* Trưởng khoa */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Trưởng khoa (Bác sĩ)
+            </label>
+            <select
+              value={formData.headDoctorId}
+              onChange={(e) => handleChange("headDoctorId", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-800"
+              disabled={isLoadingStaff}
+            >
+              <option value="">-- Chưa phân công --</option>
+              {doctorsList.map((doc) => (
+                <option key={doc.id} value={doc.doctorId}>
+                  {doc.fullName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Điều dưỡng trưởng */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Điều dưỡng trưởng (Y tá)
+            </label>
+            <select
+              value={formData.headNurseId}
+              onChange={(e) => handleChange("headNurseId", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-800"
+              disabled={isLoadingStaff}
+            >
+              <option value="">-- Chưa phân công --</option>
+              {nursesList.map((nurse) => (
+                <option key={nurse.id} value={nurse.nurseId}>
+                  {nurse.fullName}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Trạng thái */}
           <div className="flex items-center gap-3">
             <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
@@ -198,6 +275,8 @@ EditSpecialtyModal.propTypes = {
     description: PropTypes.string,
     price: PropTypes.number,
     isActive: PropTypes.bool,
+    headDoctorId: PropTypes.number,
+    headNurseId: PropTypes.number,
   }).isRequired,
   onSubmit: PropTypes.func.isRequired,
   isSubmitting: PropTypes.bool,

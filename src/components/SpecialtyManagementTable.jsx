@@ -195,6 +195,8 @@ export function SpecialtyManagementTable() {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 w-12">#</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Tên chuyên khoa</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Mô tả</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Trưởng khoa</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Điều dưỡng trưởng</th>
                     <th className="text-right py-3 px-4 font-semibold text-gray-700">Giá khám</th>
                     <th className="text-center py-3 px-4 font-semibold text-gray-700">Số bác sĩ</th>
                     <th className="text-center py-3 px-4 font-semibold text-gray-700">Trạng thái</th>
@@ -216,6 +218,24 @@ export function SpecialtyManagementTable() {
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-500 max-w-xs">
                           <span className="line-clamp-2">{specialty.description || "—"}</span>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-700">
+                          {specialty.headDoctorName ? (
+                            <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md text-xs font-semibold border border-amber-200">
+                              👑 {specialty.headDoctorName}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 italic text-xs">Chưa phân công</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-700">
+                          {specialty.headNurseName ? (
+                            <span className="inline-flex items-center gap-1 text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md text-xs font-semibold border border-indigo-200">
+                              📋 {specialty.headNurseName}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 italic text-xs">Chưa phân công</span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-right">
                           <span className="font-medium text-gray-800">
@@ -256,7 +276,7 @@ export function SpecialtyManagementTable() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="text-center py-12 text-gray-400">
+                      <td colSpan={9} className="text-center py-12 text-gray-400">
                         <Stethoscope className="w-10 h-10 mx-auto mb-2 opacity-30" />
                         {debouncedSearch
                           ? `Không tìm thấy chuyên khoa nào khớp với "${debouncedSearch}".`
