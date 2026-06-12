@@ -10,6 +10,7 @@ import {
   Activity,
   Users,
   Stethoscope,
+  Building2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -51,6 +52,11 @@ const hospitalItems = [
     label: "Quản lý Chuyên khoa",
     to: "/admin/specialties",
     icon: Stethoscope,
+  },
+  {
+    label: "Quản lý Khoa & Phòng",
+    to: "/admin/wards",
+    icon: Building2,
   },
 ];
 

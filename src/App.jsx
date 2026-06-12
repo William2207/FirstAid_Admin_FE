@@ -15,6 +15,7 @@ import UnauthorizedPage from "./pages/UnauthorizedPage";
 import { PracticalCourseManagementTable } from "./components/PracticalCourseManagementTable";
 import { StaffManagementTable } from "./components/StaffManagementTable";
 import { SpecialtyManagementTable } from "./components/SpecialtyManagementTable";
+import { WardManagementTable } from "./components/WardManagementTable";
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="practical-courses" element={<PracticalCourseManagementTable />} />
             <Route path="staff" element={<StaffManagementTable />} />
             <Route path="specialties" element={<SpecialtyManagementTable />} />
+            <Route path="wards" element={<WardManagementTable />} />
           </Route>
 
           {/* Login */}
