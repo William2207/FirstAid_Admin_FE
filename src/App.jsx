@@ -16,6 +16,7 @@ import { PracticalCourseManagementTable } from "./components/PracticalCourseMana
 import { StaffManagementTable } from "./components/StaffManagementTable";
 import { SpecialtyManagementTable } from "./components/SpecialtyManagementTable";
 import { WardManagementTable } from "./components/WardManagementTable";
+import { AuditLogsManagementTable } from "./components/AuditLogsManagementTable";
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
             <Route path="staff" element={<StaffManagementTable />} />
             <Route path="specialties" element={<SpecialtyManagementTable />} />
             <Route path="wards" element={<WardManagementTable />} />
+            <Route path="audit-logs" element={<AuditLogsManagementTable />} />
           </Route>
 
           {/* Login */}

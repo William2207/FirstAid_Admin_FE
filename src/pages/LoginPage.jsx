@@ -30,20 +30,23 @@ export default function LoginPage() {
         email,
         password,
       });
+
       const { token, user } = response.data;
+      console.log("User data from login response:", user);
       sessionStorage.setItem("token", token);
-      sessionStorage.setItem("roles", JSON.stringify(user.roles));
+      sessionStorage.setItem("roles", JSON.stringify(user.role));
+
       // Kiểm tra role có phải Admin không - xử lý nhiều trường hợp
       let hasAdminRole = false;
 
-      if (user.roles) {
-        // Nếu roles là mảng
-        if (Array.isArray(user.roles)) {
-          hasAdminRole = user.roles.includes("Admin");
+      if (user.role) {
+        // Nếu role là mảng
+        if (Array.isArray(user.role)) {
+          hasAdminRole = user.role.includes("Admin");
         }
-        // Nếu roles là chuỗi
-        else if (typeof user.roles === "string") {
-          hasAdminRole = user.roles === "Admin" || user.roles.includes("Admin");
+        // Nếu role là chuỗi
+        else if (typeof user.role === "string") {
+          hasAdminRole = user.role === "Admin" || user.role.includes("Admin");
         }
       }
 
@@ -54,11 +57,11 @@ export default function LoginPage() {
         return;
       }
 
-      const userResponse = await axiosCustom.get("/users/me");
-      const userData = userResponse.data;
+      // Dùng userData trả về từ login, không cần gọi thêm /users/me
+      const userData = user;
 
       // Sử dụng login từ AuthContext
-      login(userData, user.roles, token);
+      login(userData, user.role, token);
 
       toast.success("Đăng nhập thành công!");
       navigate("/admin");
