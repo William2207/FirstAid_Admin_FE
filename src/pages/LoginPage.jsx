@@ -31,9 +31,10 @@ export default function LoginPage() {
         password,
       });
 
-      const { token, user } = response.data;
+      const { token, refreshToken, user } = response.data;
       console.log("User data from login response:", user);
       sessionStorage.setItem("token", token);
+      sessionStorage.setItem("refreshToken", refreshToken);
       sessionStorage.setItem("roles", JSON.stringify(user.role));
 
       // Kiểm tra role có phải Admin không - xử lý nhiều trường hợp
