@@ -18,7 +18,8 @@ import {
   X, 
   RefreshCw,
   Building,
-  UserCheck
+  UserCheck,
+  UserX
 } from "lucide-react";
 
 export function StaffManagementTable() {
@@ -99,6 +100,17 @@ export function StaffManagementTable() {
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleStatus = async (id) => {
+    try {
+      const response = await axiosCustom.put(`/staff/${id}/toggle-status`);
+      toast.success(response.data.message);
+      fetchStaff();
+    } catch (error) {
+      console.error("Lỗi thay đổi trạng thái:", error);
+      toast.error(error.response?.data?.message || "Không thể thay đổi trạng thái nhân viên.");
     }
   };
 
@@ -463,7 +475,7 @@ export function StaffManagementTable() {
 
                         {/* Action buttons */}
                         <td className="py-3.5 px-6">
-                          <div className="flex justify-center">
+                          <div className="flex justify-center gap-2">
                             <button
                               onClick={() => {
                                 setEditingStaff(staff);
@@ -473,6 +485,26 @@ export function StaffManagementTable() {
                             >
                               <Edit3 size={13} />
                               Chỉnh sửa
+                            </button>
+                            <button
+                              onClick={() => handleToggleStatus(staff.id)}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold transition-all duration-200 shadow-sm active:scale-95 cursor-pointer ${
+                                staff.isActive 
+                                  ? 'text-red-600 hover:text-white hover:bg-red-600 hover:border-red-600' 
+                                  : 'text-green-600 hover:text-white hover:bg-green-600 hover:border-green-600'
+                              }`}
+                            >
+                              {staff.isActive ? (
+                                <>
+                                  <UserX size={13} />
+                                  Vô hiệu hóa
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck size={13} />
+                                  Kích hoạt
+                                </>
+                              )}
                             </button>
                           </div>
                         </td>
