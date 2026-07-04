@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosCustom = axios.create({
-  baseURL: "http://localhost:5024/api",
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 // Request interceptor
@@ -22,7 +22,7 @@ axiosCustom.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor
@@ -45,17 +45,22 @@ axiosCustom.interceptors.response.use(
           throw new Error("No refresh token available");
         }
 
-        const res = await axios.post("http://localhost:5024/api/Account/refresh-token", {
-          accessToken: accessToken,
-          refreshToken: refreshToken
-        });
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/Account/refresh-token`,
+          {
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          },
+        );
 
         if (res.data && res.data.accessToken) {
           sessionStorage.setItem("token", res.data.accessToken);
           sessionStorage.setItem("refreshToken", res.data.refreshToken);
 
-          axiosCustom.defaults.headers.common["Authorization"] = `Bearer ${res.data.accessToken}`;
-          originalRequest.headers["Authorization"] = `Bearer ${res.data.accessToken}`;
+          axiosCustom.defaults.headers.common["Authorization"] =
+            `Bearer ${res.data.accessToken}`;
+          originalRequest.headers["Authorization"] =
+            `Bearer ${res.data.accessToken}`;
 
           return axiosCustom(originalRequest);
         }
@@ -77,7 +82,7 @@ axiosCustom.interceptors.response.use(
       console.error("Error:", error.message);
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosCustom;
